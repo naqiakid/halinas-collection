@@ -147,6 +147,34 @@
     .kcal-day.kcal-sel { background:#B85C7A;color:#fff;font-weight:700; }
     .kcal-day.kcal-sel:hover { background:#a04d6a; }
     .kcal-day.kcal-today:not(.kcal-sel) { border:2px solid #B85C7A;color:#B85C7A;font-weight:700; }
+
+    /* ── KALENDAR PANEL ──────────────────────────────────── */
+    .kal-wrap { overflow-x:auto;border:1px solid #eee;border-radius:12px;background:#fff; }
+    .kal-grid { display:flex;min-width:520px; }
+    .kal-time-col { width:50px;flex-shrink:0; }
+    .kal-time-spacer { height:48px;border-bottom:1px solid #eee; }
+    .kal-time-lbl { height:56px;display:flex;align-items:flex-start;justify-content:flex-end;padding:3px 6px 0 0;font-size:0.66rem;color:#c0c0c0;box-sizing:border-box; }
+    .kal-days { flex:1;display:flex; }
+    .kal-day-col { flex:1;min-width:70px;border-left:1px solid #eee; }
+    .kal-day-hdr { height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-bottom:1px solid #eee;background:#faf8f9; }
+    .kal-day-name { font-size:0.65rem;font-weight:700;color:#bbb;letter-spacing:0.5px; }
+    .kal-date-num { width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:0.88rem;font-weight:600;color:var(--dark); }
+    .kal-day-hdr.kal-today .kal-date-num { background:var(--rose);color:#fff; }
+    .kal-day-hdr.kal-today .kal-day-name { color:var(--rose); }
+    .kal-slots { position:relative;cursor:pointer; }
+    .kal-slots:hover { background:rgba(184,92,122,0.018); }
+    .kal-hour-line { position:absolute;left:0;right:0;border-top:1px solid #f0f0f0;pointer-events:none; }
+    .kal-half-line { position:absolute;left:4px;right:0;border-top:1px dashed #f7f7f7;pointer-events:none; }
+    .kal-ev { position:absolute;left:3px;right:3px;border-radius:6px;padding:3px 5px;font-size:0.68rem;line-height:1.3;color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);z-index:2;transition:filter .15s; }
+    .kal-ev:hover { filter:brightness(0.85); }
+    .kal-ev-name { font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .kal-ev-time { opacity:.88; }
+    .kal-nav-btn { padding:6px 13px;background:#f5f5f7;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.8rem;font-weight:600;color:var(--dark); }
+    .kal-nav-btn:hover { background:#ece7ea; }
+    .kal-nav-btn.kal-today { background:var(--rose-lt);color:var(--rose-dk);border-color:transparent; }
+    .kal-legend { display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px; }
+    .kal-legend-item { display:flex;align-items:center;gap:5px;font-size:0.77rem;color:var(--mid); }
+    .kal-legend-dot { width:10px;height:10px;border-radius:3px;flex-shrink:0; }
     .btn-edit {
       padding: 5px 12px; background: #E8F4FD; color: #2980B9; border: none;
       border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 0.75rem;
@@ -372,6 +400,9 @@
       <div class="nav-item" data-panel="kelas" onclick="showPanel('kelas', this)">
         <span class="nav-icon">📚</span><span>Kelas</span>
       </div>
+      <div class="nav-item" data-panel="kalendar" onclick="showPanel('kalendar', this);renderKalendar()">
+        <span class="nav-icon">📅</span><span>Kalendar</span>
+      </div>
       <div class="nav-item" data-panel="gallery" onclick="showPanel('gallery', this)">
         <span class="nav-icon">🖼️</span><span>Galeri</span>
       </div>
@@ -572,7 +603,40 @@
       </div>
     </div>
 
+    <!-- KALENDAR PANEL -->
+    <div class="panel" id="panel-kalendar">
+      <div class="page-header" style="flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 class="page-title">Kalendar Kelas</h1>
+          <p class="page-subtitle">Klik slot masa untuk tambah sesi • Klik sesi untuk padam</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="kal-nav-btn" onclick="kalPrev()">‹ Sebelum</button>
+          <button class="kal-nav-btn kal-today" onclick="kalToday()">Hari Ini</button>
+          <button class="kal-nav-btn" onclick="kalNext()">Seterus ›</button>
+        </div>
+      </div>
+      <p id="kal-week-label" style="font-size:0.88rem;font-weight:600;color:var(--mid);margin-bottom:12px;text-align:center;"></p>
+      <div id="kal-legend" class="kal-legend"></div>
+      <div class="kal-wrap">
+        <div class="kal-grid" id="kal-grid" style="min-height:200px;align-items:center;justify-content:center;">
+          <p style="color:#ccc;font-size:0.85rem;">Memuatkan kalendar…</p>
+        </div>
+      </div>
+    </div>
+
   </main>
+</div>
+
+<!-- ── KALENDAR MODAL ────────────────────────────────────── -->
+<div class="modal-overlay" id="kal-modal" onclick="overlayClose(event,'kal-modal')">
+  <div class="modal" style="max-width:360px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 class="modal-title" id="kal-modal-title">Tambah Sesi</h3>
+      <button class="modal-close" onclick="closeModal('kal-modal')">✕</button>
+    </div>
+    <div id="kal-modal-body"></div>
+  </div>
 </div>
 
 <!-- ── TESTIMONIAL MODAL ────────────────────────────────── -->
@@ -1515,6 +1579,230 @@
       toast('Kelas dipadam.');
       loadKelas();
     } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── KALENDAR ─────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════
+  const KAL_H_PX  = 56;   // pixel height per 1-hour row
+  const KAL_START = 8;    // business start (08:00)
+  const KAL_END   = 20;   // business end   (20:00)
+
+  let kalWeek    = _kalWeekStart(new Date());
+  let _kalEvData = null;   // holds data for the currently open event modal
+  let _kalDate   = '';
+  let _kalTime   = '';
+
+  function _kalWeekStart(d) {
+    const r = new Date(d); r.setDate(d.getDate() - d.getDay()); r.setHours(0,0,0,0); return r;
+  }
+  function _kalDs(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function _kalAddMins(t, mins) {
+    const [h,m] = (t||'09:00').split(':').map(Number);
+    const tot = Math.min(h*60+(m||0)+mins, KAL_END*60);
+    return `${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;
+  }
+
+  function renderKalendar() {
+    const days = Array.from({length:7}, (_,i) => {
+      const d = new Date(kalWeek); d.setDate(kalWeek.getDate()+i); return d;
+    });
+    const todayStr  = _kalDs(new Date());
+    const weekStart = _kalDs(days[0]);
+    const weekEnd   = _kalDs(days[6]);
+
+    // Week label
+    const s = days[0], e = days[6];
+    document.getElementById('kal-week-label').textContent =
+      `${s.getDate()} ${_BULAN_ADM[s.getMonth()]} – ${e.getDate()} ${_BULAN_ADM[e.getMonth()]} ${e.getFullYear()}`;
+
+    // Legend
+    document.getElementById('kal-legend').innerHTML = kelasCache.map(k => {
+      const c = tahapColors[k.tahap]||'#B85C7A';
+      return `<div class="kal-legend-item"><div class="kal-legend-dot" style="background:${c};"></div>${esc(k.nama)}</div>`;
+    }).join('');
+
+    // Bucket events by date
+    const evByDate = {};
+    days.forEach(d => evByDate[_kalDs(d)] = []);
+    for (const k of kelasCache) {
+      const color = tahapColors[k.tahap]||'#B85C7A';
+      for (const d of (k.tarikhTersedia||[])) {
+        if (d.tarikh >= weekStart && d.tarikh <= weekEnd) {
+          (evByDate[d.tarikh] = evByDate[d.tarikh]||[]).push({
+            kelasId:k.id, kelasNama:k.nama, tahap:k.tahap, color,
+            tarikh:d.tarikh, masa:d.masa||'09:00',
+            masaAkhir:d.masaAkhir||_kalAddMins(d.masa||'09:00',120)
+          });
+        }
+      }
+    }
+
+    const totalH = KAL_END - KAL_START;
+    const slotH  = totalH * KAL_H_PX;
+
+    // Time column
+    let timeHTML = `<div class="kal-time-col"><div class="kal-time-spacer"></div>`;
+    for (let h = KAL_START; h < KAL_END; h++)
+      timeHTML += `<div class="kal-time-lbl">${String(h).padStart(2,'0')}:00</div>`;
+    timeHTML += '</div>';
+
+    // Day columns
+    let daysHTML = '<div class="kal-days">';
+    days.forEach(d => {
+      const ds      = _kalDs(d);
+      const isToday = ds === todayStr;
+      const dName   = _HARI_ADM[d.getDay()].slice(0,3).toUpperCase();
+
+      // Hour/half-hour grid lines
+      let lines = '';
+      for (let i = 0; i < totalH; i++) {
+        lines += `<div class="kal-hour-line" style="top:${i*KAL_H_PX}px;"></div>`;
+        if (i < totalH-1) lines += `<div class="kal-half-line" style="top:${i*KAL_H_PX+KAL_H_PX/2}px;"></div>`;
+      }
+
+      // Event blocks
+      let evHTML = '';
+      for (const ev of (evByDate[ds]||[])) {
+        const [sh,sm] = ev.masa.split(':').map(Number);
+        const [eh,em] = ev.masaAkhir.split(':').map(Number);
+        const top  = (sh-KAL_START)*KAL_H_PX + sm/60*KAL_H_PX;
+        const ht   = Math.max((eh-KAL_START)*KAL_H_PX + em/60*KAL_H_PX - top - 2, 20);
+        const evJson = esc(JSON.stringify({
+          kelasId:ev.kelasId, kelasNama:ev.kelasNama, tahap:ev.tahap,
+          color:ev.color, tarikh:ev.tarikh, masa:ev.masa, masaAkhir:ev.masaAkhir
+        }));
+        evHTML += `
+          <div class="kal-ev" style="top:${top}px;height:${ht}px;background:${ev.color};"
+               data-ev="${evJson}" onclick="event.stopPropagation();kalOpenView(this)">
+            <div class="kal-ev-name">${esc(ev.kelasNama)}</div>
+            ${ht>30?`<div class="kal-ev-time">${ev.masa}–${ev.masaAkhir}</div>`:''}
+          </div>`;
+      }
+
+      daysHTML += `
+        <div class="kal-day-col">
+          <div class="kal-day-hdr${isToday?' kal-today':''}">
+            <span class="kal-day-name">${dName}</span>
+            <span class="kal-date-num">${d.getDate()}</span>
+          </div>
+          <div class="kal-slots" style="height:${slotH}px;" onclick="kalSlotClick(event,'${ds}')">
+            ${lines}${evHTML}
+          </div>
+        </div>`;
+    });
+    daysHTML += '</div>';
+
+    const grid = document.getElementById('kal-grid');
+    grid.style.removeProperty('align-items');
+    grid.style.removeProperty('justify-content');
+    grid.innerHTML = timeHTML + daysHTML;
+  }
+
+  function kalPrev()  { kalWeek.setDate(kalWeek.getDate()-7); renderKalendar(); }
+  function kalNext()  { kalWeek.setDate(kalWeek.getDate()+7); renderKalendar(); }
+  function kalToday() { kalWeek = _kalWeekStart(new Date()); renderKalendar(); }
+
+  // Click empty slot → add session
+  function kalSlotClick(e, ds) {
+    if (e.target.closest('.kal-ev')) return;
+    const y    = e.clientY - e.currentTarget.getBoundingClientRect().top;
+    const mins = Math.round(y / KAL_H_PX * 60 / 30) * 30;
+    const h    = Math.min(KAL_START + Math.floor(mins/60), KAL_END-1);
+    const m    = mins % 60;
+    _kalDate = ds;
+    _kalTime = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+
+    if (!kelasCache.length) { toast('Sila tambah kelas dahulu.','err'); return; }
+    const dObj = new Date(ds+'T12:00:00');
+    const lbl  = `${_HARI_ADM[dObj.getDay()]}, ${dObj.getDate()} ${_BULAN_ADM[dObj.getMonth()]} ${dObj.getFullYear()}`;
+
+    document.getElementById('kal-modal-title').textContent = 'Tambah Sesi Kelas';
+    document.getElementById('kal-modal-body').innerHTML = `
+      <p style="font-size:0.85rem;color:var(--mid);margin-bottom:4px;">📅 ${esc(lbl)}</p>
+      <p style="font-size:0.85rem;color:var(--mid);margin-bottom:18px;">⏰ Mula: <strong>${_kalTime}</strong></p>
+      <div class="form-group">
+        <label>Kelas</label>
+        <select id="kal-kelas" class="form-control">
+          ${kelasCache.map(k=>`<option value="${k.id}">${esc(k.nama)} (${esc(k.tahap||'')})</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tempoh</label>
+        <select id="kal-dur" class="form-control">
+          <option value="60">1 jam</option>
+          <option value="90">1.5 jam</option>
+          <option value="120" selected>2 jam</option>
+          <option value="150">2.5 jam</option>
+          <option value="180">3 jam</option>
+          <option value="240">4 jam</option>
+        </select>
+      </div>
+      <button class="btn-save" style="width:100%;margin-top:4px;" onclick="kalSaveSession(this)">💾 Simpan Sesi</button>`;
+    openModal('kal-modal');
+  }
+
+  async function kalSaveSession(btn) {
+    const kelasId   = document.getElementById('kal-kelas').value;
+    const durMins   = parseInt(document.getElementById('kal-dur').value);
+    const masaAkhir = _kalAddMins(_kalTime, durMins);
+    const kelas     = kelasCache.find(k => k.id === kelasId);
+    if (!kelas) return;
+    if ((kelas.tarikhTersedia||[]).find(d => d.tarikh===_kalDate && d.masa===_kalTime)) {
+      toast('Sesi ini sudah wujud.','err'); return;
+    }
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    const entry   = { tarikh:_kalDate, masa:_kalTime, masaAkhir, label:formatDateLabel(_kalDate) };
+    const updated = [...(kelas.tarikhTersedia||[]), entry]
+      .sort((a,b) => a.tarikh.localeCompare(b.tarikh)||a.masa.localeCompare(b.masa));
+    try {
+      await db.collection('classes').doc(kelasId).update({ tarikhTersedia: updated });
+      kelas.tarikhTersedia = updated;
+      toast(`Sesi ${kelas.nama} berjaya ditambah!`);
+      closeModal('kal-modal');
+      renderKalendar();
+    } catch(err) {
+      toast('Ralat: '+err.message,'err');
+      btn.disabled=false; btn.innerHTML='💾 Simpan Sesi';
+    }
+  }
+
+  // Click existing event → view & delete
+  function kalOpenView(el) {
+    _kalEvData = JSON.parse(el.dataset.ev);
+    const ev   = _kalEvData;
+    const dObj = new Date(ev.tarikh+'T12:00:00');
+    const lbl  = `${_HARI_ADM[dObj.getDay()]}, ${dObj.getDate()} ${_BULAN_ADM[dObj.getMonth()]} ${dObj.getFullYear()}`;
+    document.getElementById('kal-modal-title').textContent = 'Butiran Sesi';
+    document.getElementById('kal-modal-body').innerHTML = `
+      <span style="background:${ev.color};color:#fff;padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;">${esc(ev.tahap)}</span>
+      <div style="font-size:1.05rem;font-weight:700;margin:10px 0 6px;">${esc(ev.kelasNama)}</div>
+      <p style="font-size:0.85rem;color:var(--mid);margin-bottom:4px;">📅 ${esc(lbl)}</p>
+      <p style="font-size:0.85rem;color:var(--mid);margin-bottom:22px;">⏰ ${esc(ev.masa)} – ${esc(ev.masaAkhir)}</p>
+      <button style="width:100%;padding:10px;background:#fdecea;border:1px solid #f5b5b0;border-radius:10px;color:#c0392b;font-family:'Poppins',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;"
+        onclick="kalDeleteSession(this)">🗑 Padam Sesi Ini</button>`;
+    openModal('kal-modal');
+  }
+
+  async function kalDeleteSession(btn) {
+    if (!_kalEvData || !confirm('Padam sesi ini?')) return;
+    const { kelasId, tarikh, masa } = _kalEvData;
+    btn.disabled = true;
+    const kelas   = kelasCache.find(k => k.id === kelasId);
+    if (!kelas) return;
+    const updated = (kelas.tarikhTersedia||[]).filter(d => !(d.tarikh===tarikh && d.masa===masa));
+    try {
+      await db.collection('classes').doc(kelasId).update({ tarikhTersedia: updated });
+      kelas.tarikhTersedia = updated;
+      toast('Sesi dipadam.');
+      closeModal('kal-modal');
+      renderKalendar();
+    } catch(err) {
+      toast('Ralat: '+err.message,'err');
+      btn.disabled = false;
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────
