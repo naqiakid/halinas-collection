@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – Halina's Collection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    :root {
+      --rose:    #B85C7A;
+      --rose-dk: #96415F;
+      --rose-lt: #F4D6E1;
+      --cream:   #F9F1EC;
+      --dark:    #2D2D2D;
+      --mid:     #6B6B6B;
+      --white:   #FFFFFF;
+      --sidebar: #1A1A2E;
+      --radius:  10px;
+      --shadow:  0 2px 12px rgba(0,0,0,0.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; background: #F5F5F7; color: var(--dark); }
+
+    /* ── LOGIN ────────────────────────────────────────── */
+    #login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--cream) 0%, #fde8ef 100%);
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+    }
+    .login-logo { text-align: center; font-size: 1.4rem; font-weight: 700; color: var(--rose); margin-bottom: 4px; }
+    .login-logo span { color: var(--dark); }
+    .login-sub { text-align: center; color: var(--mid); font-size: 0.83rem; margin-bottom: 32px; }
+    .login-error {
+      background: #FFE5E5; color: #C0392B; padding: 10px 14px;
+      border-radius: 8px; font-size: 0.83rem; margin-bottom: 16px; display: none;
+    }
+    .login-error.show { display: block; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+    .form-control {
+      width: 100%; padding: 12px 16px;
+      border: 2px solid #E8E8E8; border-radius: var(--radius);
+      font-family: 'Poppins', sans-serif; font-size: 0.9rem;
+      color: var(--dark); outline: none; transition: border-color 0.2s;
+    }
+    .form-control:focus { border-color: var(--rose); }
+    textarea.form-control { resize: vertical; min-height: 100px; }
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: var(--rose); color: white; border: none;
+      border-radius: var(--radius); font-family: 'Poppins', sans-serif;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--rose-dk); }
+    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    /* ── DASHBOARD ────────────────────────────────────── */
+    #dashboard { display: none; min-height: 100vh; }
+    #dashboard.show { display: flex; }
+
+    .sidebar {
+      width: 230px; background: var(--sidebar);
+      min-height: 100vh; display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.07);
+      color: white; font-weight: 700; font-size: 0.95rem; line-height: 1.4;
+    }
+    .sidebar-logo span { color: var(--rose); }
+    .sidebar-badge { font-size: 0.65rem; color: rgba(255,255,255,0.35); font-weight: 400; display: block; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; color: rgba(255,255,255,0.55);
+      cursor: pointer; font-size: 0.85rem; font-weight: 500;
+      transition: all 0.2s; border-left: 3px solid transparent; user-select: none;
+    }
+    .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
+    .nav-item.active { color: white; background: rgba(184,92,122,0.15); border-left-color: var(--rose); }
+    .nav-icon { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+    .sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .btn-logout {
+      width: 100%; padding: 9px; background: transparent;
+      color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; font-family: 'Poppins', sans-serif;
+      font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout:hover { color: white; border-color: rgba(255,255,255,0.3); }
+
+    .main-content { margin-left: 230px; flex: 1; padding: 32px; }
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 1.4rem; font-weight: 700; }
+    .page-subtitle { font-size: 0.83rem; color: var(--mid); margin-top: 3px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── CARDS ────────────────────────────────────────── */
+    .card { background: var(--white); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    .card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #F0F0F0; }
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #F0F0F0; }
+    .list-header .card-title { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    /* ── BUTTONS ──────────────────────────────────────── */
+    .btn-save {
+      padding: 10px 24px; background: var(--rose); color: white; border: none;
+      border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-save:hover { background: var(--rose-dk); }
+    .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-add {
+      padding: 8px 18px; background: var(--rose-lt); color: var(--rose-dk);
+      border: 2px solid var(--rose-lt); border-radius: 8px;
+      font-family: 'Poppins', sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-add:hover { background: var(--rose); color: white; border-color: var(--rose); }
+    .btn-edit {
+      padding: 5px 12px; background: #E8F4FD; color: #2980B9; border: none;
+      border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 0.75rem;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-edit:hover { background: #2980B9; color: white; }
+    .btn-danger {
+      padding: 5px 12px; background: #FFE5E5; color: #C0392B; border: none;
+      border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 0.75rem;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-danger:hover { background: #C0392B; color: white; }
+    .btn-cancel {
+      padding: 10px 20px; background: #F5F5F7; color: var(--mid); border: none;
+      border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.85rem;
+      font-weight: 500; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-cancel:hover { background: #E8E8E8; }
+
+    /* ── GALLERY ──────────────────────────────────────── */
+    .upload-area {
+      border: 2px dashed var(--rose-lt); border-radius: 14px; padding: 36px;
+      text-align: center; cursor: pointer; transition: all 0.2s;
+      margin-bottom: 24px; position: relative;
+    }
+    .upload-area:hover { border-color: var(--rose); background: #FFF8FA; }
+    .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2.2rem; margin-bottom: 8px; }
+    .upload-hint { font-size: 0.85rem; color: var(--mid); }
+    .upload-hint strong { color: var(--rose); }
+    .progress-wrap { margin-top: 14px; display: none; }
+    .progress-label { font-size: 0.8rem; color: var(--mid); margin-bottom: 6px; }
+    .progress-bar { height: 6px; background: var(--rose-lt); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--rose); border-radius: 3px; transition: width 0.3s; width: 0%; }
+    .gallery-grid-admin {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .gallery-thumb {
+      position: relative; border-radius: 10px; overflow: hidden;
+      aspect-ratio: 1; background: var(--cream);
+    }
+    .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gallery-thumb .del-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .gallery-thumb:hover .del-overlay { opacity: 1; }
+    .del-btn {
+      background: #E74C3C; color: white; border: none; border-radius: 8px;
+      padding: 7px 14px; font-size: 0.8rem; cursor: pointer; font-weight: 600;
+    }
+
+    /* ── LIST ITEMS ───────────────────────────────────── */
+    .list-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid #F4F4F4; }
+    .list-item:last-child { border-bottom: none; }
+    .list-item-body { flex: 1; min-width: 0; }
+    .list-item-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 3px; }
+    .list-item-sub { font-size: 0.8rem; color: var(--mid); line-height: 1.5; white-space: pre-wrap; }
+    .list-item-actions { display: flex; gap: 6px; flex-shrink: 0; padding-top: 2px; }
+
+    /* ── MODAL ────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 500; display: none; align-items: center;
+      justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 16px; padding: 28px;
+      width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+    .modal-title { font-size: 1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--mid); }
+    .modal-close:hover { color: var(--dark); }
+    .modal-footer { margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── STAR RATING ──────────────────────────────────── */
+    .star-wrap { display: flex; gap: 6px; margin-top: 6px; }
+    .star { font-size: 1.5rem; cursor: pointer; color: #D5D5D5; transition: color 0.1s; user-select: none; }
+    .star.on { color: #F5A623; }
+
+    /* ── TOAST ────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      padding: 13px 20px; border-radius: 10px; font-size: 0.84rem;
+      color: white; background: var(--dark);
+      transform: translateY(70px); opacity: 0; transition: all 0.3s;
+      display: flex; align-items: center; gap: 8px; min-width: 220px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok { background: #27AE60; }
+    .toast.err { background: #E74C3C; }
+
+    /* ── EMPTY STATE ──────────────────────────────────── */
+    .empty { text-align: center; padding: 40px 20px; color: var(--mid); }
+    .empty-icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .empty p { font-size: 0.85rem; }
+
+    /* ── SPINNER ──────────────────────────────────────── */
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MOBILE ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%; height: auto; min-height: unset;
+        top: auto; bottom: 0; left: 0; right: 0; flex-direction: row;
+      }
+      .sidebar-logo, .sidebar-footer { display: none; }
+      .sidebar-nav { display: flex; flex-direction: row; padding: 0; width: 100%; }
+      .nav-item {
+        flex-direction: column; gap: 3px; padding: 8px 6px;
+        font-size: 0.65rem; border-left: none; border-top: 3px solid transparent;
+        flex: 1; justify-content: center; text-align: center; min-width: 0;
+      }
+      .nav-item.active { border-left-color: transparent; border-top-color: var(--rose); }
+      .nav-icon { width: auto; font-size: 1.2rem; }
+      .main-content { margin-left: 0; padding: 20px 14px 90px; }
+      .toast { bottom: 76px; left: 14px; right: 14px; }
+      .gallery-grid-admin { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+      .login-card { padding: 36px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN PAGE ──────────────────────────────────────── -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">Halina's<span>Collection</span></div>
+    <p class="login-sub">Portal Admin — Log masuk untuk teruskan</p>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group">
+      <label>E-mel Admin</label>
+      <input type="email" id="login-email" class="form-control" placeholder="admin@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Kata Laluan</label>
+      <input type="password" id="login-password" class="form-control" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Log Masuk</button>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ───────────────────────────────────────── -->
+<div id="dashboard">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      Halina's<span>Collection</span>
+      <span class="sidebar-badge">Admin Portal</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-panel="contact" onclick="showPanel('contact', this)">
+        <span class="nav-icon">📞</span><span>Hubungi</span>
+      </div>
+      <div class="nav-item" data-panel="gallery" onclick="showPanel('gallery', this)">
+        <span class="nav-icon">🖼️</span><span>Galeri</span>
+      </div>
+      <div class="nav-item" data-panel="testimonials" onclick="showPanel('testimonials', this)">
+        <span class="nav-icon">💬</span><span>Testimoni</span>
+      </div>
+      <div class="nav-item" data-panel="faq" onclick="showPanel('faq', this)">
+        <span class="nav-icon">❓</span><span>FAQ</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()">🚪 Log Keluar</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- CONTACT PANEL -->
+    <div class="panel active" id="panel-contact">
+      <div class="page-header">
+        <h1 class="page-title">Maklumat Hubungi</h1>
+        <p class="page-subtitle">Kemas kini nombor telefon, alamat dan waktu operasi</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Maklumat Perhubungan</h3>
+        <div class="form-group">
+          <label>Nombor WhatsApp <small style="color:var(--mid);font-weight:400;">(tanpa +, contoh: 60123456789)</small></label>
+          <input type="text" id="c-wa" class="form-control" placeholder="60123456789" />
+        </div>
+        <div class="form-group">
+          <label>Nombor Telefon (untuk paparan)</label>
+          <input type="text" id="c-phone" class="form-control" placeholder="+60 12-345 6789" />
+        </div>
+        <div class="form-group">
+          <label>E-mel</label>
+          <input type="email" id="c-email" class="form-control" placeholder="halina@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Alamat</label>
+          <textarea id="c-address" class="form-control" placeholder="Arked MARA, Jalan Semenyih,&#10;43000 Kajang, Selangor"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Waktu Operasi</label>
+          <textarea id="c-hours" class="form-control" placeholder="Isnin – Sabtu: 9:00 pagi – 6:00 petang&#10;Ahad: Atas tempahan sahaja"></textarea>
+        </div>
+        <button class="btn-save" onclick="saveContact(this)">💾 Simpan Perubahan</button>
+      </div>
+    </div>
+
+    <!-- GALLERY PANEL -->
+    <div class="panel" id="panel-gallery">
+      <div class="page-header">
+        <h1 class="page-title">Galeri Foto</h1>
+        <p class="page-subtitle">Muat naik dan urus gambar yang dipaparkan di laman web</p>
+      </div>
+      <div class="card">
+        <div class="upload-area" id="upload-area">
+          <input type="file" id="gallery-input" accept="image/*" multiple
+            onchange="uploadImages(this.files)" onclick="event.stopPropagation()" />
+          <div class="upload-icon">📸</div>
+          <div class="upload-hint"><strong>Klik untuk pilih gambar</strong> atau seret ke sini</div>
+          <div class="upload-hint" style="font-size:0.76rem;margin-top:4px;">JPG, PNG, WEBP · Maksimum 5MB setiap gambar · Boleh pilih berbilang</div>
+        </div>
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-label" id="progress-label">Memuat naik...</div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div class="gallery-grid-admin" id="gallery-admin-grid">
+          <div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🖼️</div><p>Belum ada gambar. Muat naik gambar pertama!</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TESTIMONIALS PANEL -->
+    <div class="panel" id="panel-testimonials">
+      <div class="page-header">
+        <h1 class="page-title">Testimoni Pelajar</h1>
+        <p class="page-subtitle">Urus ulasan dan testimoni yang dipaparkan di laman web</p>
+      </div>
+      <div class="card">
+        <div class="list-header">
+          <h3 class="card-title">Senarai Testimoni</h3>
+          <button class="btn-add" onclick="openTestiModal()">+ Tambah Baru</button>
+        </div>
+        <div id="testi-list">
+          <div class="empty"><div class="empty-icon">💬</div><p>Belum ada testimoni.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ PANEL -->
+    <div class="panel" id="panel-faq">
+      <div class="page-header">
+        <h1 class="page-title">Soalan Lazim (FAQ)</h1>
+        <p class="page-subtitle">Urus soalan dan jawapan yang dipaparkan di laman web</p>
+      </div>
+      <div class="card">
+        <div class="list-header">
+          <h3 class="card-title">Senarai Soalan</h3>
+          <button class="btn-add" onclick="openFaqModal()">+ Tambah Soalan</button>
+        </div>
+        <div id="faq-list">
+          <div class="empty"><div class="empty-icon">❓</div><p>Belum ada soalan.</p></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── TESTIMONIAL MODAL ────────────────────────────────── -->
+<div class="modal-overlay" id="testi-modal" onclick="overlayClose(event,'testi-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="testi-modal-title">Tambah Testimoni</h3>
+      <button class="modal-close" onclick="closeModal('testi-modal')">✕</button>
+    </div>
+    <input type="hidden" id="testi-id" />
+    <div class="form-group">
+      <label>Nama Pelajar</label>
+      <input type="text" id="t-name" class="form-control" placeholder="contoh: Siti Aminah" />
+    </div>
+    <div class="form-group">
+      <label>Batch / Kumpulan</label>
+      <input type="text" id="t-tag" class="form-control" placeholder="contoh: Pelajar Batch Jun 2025" />
+    </div>
+    <div class="form-group">
+      <label>Ulasan</label>
+      <textarea id="t-review" class="form-control" placeholder="Tulis ulasan pelajar di sini..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Penilaian</label>
+      <div class="star-wrap" id="star-wrap">
+        <span class="star on" data-v="1" onclick="setRating(1)">★</span>
+        <span class="star on" data-v="2" onclick="setRating(2)">★</span>
+        <span class="star on" data-v="3" onclick="setRating(3)">★</span>
+        <span class="star on" data-v="4" onclick="setRating(4)">★</span>
+        <span class="star on" data-v="5" onclick="setRating(5)">★</span>
+      </div>
+      <input type="hidden" id="t-rating" value="5" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('testi-modal')">Batal</button>
+      <button class="btn-save" onclick="saveTesti(this)">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FAQ MODAL ────────────────────────────────────────── -->
+<div class="modal-overlay" id="faq-modal" onclick="overlayClose(event,'faq-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="faq-modal-title">Tambah Soalan</h3>
+      <button class="modal-close" onclick="closeModal('faq-modal')">✕</button>
+    </div>
+    <input type="hidden" id="faq-id" />
+    <div class="form-group">
+      <label>Soalan</label>
+      <input type="text" id="f-question" class="form-control" placeholder="contoh: Boleh join walaupun tiada pengalaman?" />
+    </div>
+    <div class="form-group">
+      <label>Jawapan</label>
+      <textarea id="f-answer" class="form-control" placeholder="Tulis jawapan di sini..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('faq-modal')">Batal</button>
+      <button class="btn-save" onclick="saveFaq(this)">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Firebase init ───────────────────────────────────────
+  let db, storage, auth;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db      = firebase.firestore();
+    storage = firebase.storage();
+    auth    = firebase.auth();
+  } catch(e) { console.error('Firebase init:', e); }
+
+  // ── Auth ────────────────────────────────────────────────
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('dashboard').classList.add('show');
+      loadAll();
+    } else {
+      document.getElementById('login-page').style.display = 'flex';
+      document.getElementById('dashboard').classList.remove('show');
+    }
+  });
+
+  async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    const btn   = document.getElementById('login-btn');
+    if (!email || !pass) { showErr('Sila isi e-mel dan kata laluan.'); return; }
+    btn.innerHTML = '<span class="spinner"></span> Masuk...';
+    btn.disabled  = true;
+    errEl.classList.remove('show');
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+    } catch(e) {
+      const msgs = {
+        'auth/user-not-found':  'E-mel atau kata laluan tidak sah.',
+        'auth/wrong-password':  'E-mel atau kata laluan tidak sah.',
+        'auth/invalid-credential': 'E-mel atau kata laluan tidak sah.',
+        'auth/too-many-requests': 'Terlalu banyak percubaan. Cuba lagi sebentar.',
+      };
+      showErr(msgs[e.code] || 'Log masuk gagal. Cuba semula.');
+      btn.innerHTML = 'Log Masuk';
+      btn.disabled  = false;
+    }
+    function showErr(msg) { errEl.textContent = msg; errEl.classList.add('show'); }
+  }
+
+  function doLogout() {
+    if (confirm('Log keluar daripada portal admin?')) auth.signOut();
+  }
+
+  // ── Navigation ──────────────────────────────────────────
+  function showPanel(name, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    el.classList.add('active');
+  }
+
+  // ── Toast ───────────────────────────────────────────────
+  let toastTimer;
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = (type === 'ok' ? '✅ ' : '❌ ') + msg;
+    el.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  // ── Modal ───────────────────────────────────────────────
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function overlayClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+  // ── Load all ────────────────────────────────────────────
+  function loadAll() { loadContact(); loadGallery(); loadTestimonials(); loadFaq(); }
+
+  // ════════════════════════════════════════════════════════
+  // CONTACT
+  // ════════════════════════════════════════════════════════
+  async function loadContact() {
+    try {
+      const doc = await db.collection('settings').doc('contact').get();
+      if (doc.exists) {
+        const d = doc.data();
+        document.getElementById('c-wa').value      = d.whatsapp || '';
+        document.getElementById('c-phone').value   = d.phone    || '';
+        document.getElementById('c-email').value   = d.email    || '';
+        document.getElementById('c-address').value = d.address  || '';
+        document.getElementById('c-hours').value   = d.hours    || '';
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  async function saveContact(btn) {
+    btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+    btn.disabled  = true;
+    try {
+      await db.collection('settings').doc('contact').set({
+        whatsapp:  document.getElementById('c-wa').value.trim(),
+        phone:     document.getElementById('c-phone').value.trim(),
+        email:     document.getElementById('c-email').value.trim(),
+        address:   document.getElementById('c-address').value.trim(),
+        hours:     document.getElementById('c-hours').value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Maklumat hubungi berjaya disimpan!');
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+    btn.innerHTML = '💾 Simpan Perubahan';
+    btn.disabled  = false;
+  }
+
+  // ════════════════════════════════════════════════════════
+  // GALLERY
+  // ════════════════════════════════════════════════════════
+  async function loadGallery() {
+    try {
+      const snap = await db.collection('gallery').orderBy('createdAt','desc').get();
+      const grid = document.getElementById('gallery-admin-grid');
+      if (snap.empty) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🖼️</div><p>Belum ada gambar. Muat naik gambar pertama!</p></div>';
+        return;
+      }
+      grid.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const div = document.createElement('div');
+        div.className = 'gallery-thumb';
+        div.innerHTML = `
+          <img src="${d.url}" alt="Gallery" loading="lazy" />
+          <div class="del-overlay">
+            <button class="del-btn" onclick="deleteImage('${doc.id}','${d.path||''}')">🗑️ Padam</button>
+          </div>`;
+        grid.appendChild(div);
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  async function uploadImages(files) {
+    const wrap  = document.getElementById('progress-wrap');
+    const fill  = document.getElementById('progress-fill');
+    const label = document.getElementById('progress-label');
+    wrap.style.display = 'block';
+    let done = 0;
+    for (const file of files) {
+      label.textContent = `Memuat naik ${done + 1} daripada ${files.length}: ${file.name}`;
+      fill.style.width  = '0%';
+      try {
+        const path = `gallery/${Date.now()}_${file.name}`;
+        const ref  = storage.ref().child(path);
+        await new Promise((res, rej) =>
+          ref.put(file).on('state_changed',
+            s => fill.style.width = (s.bytesTransferred / s.totalBytes * 100) + '%',
+            rej, res)
+        );
+        const url = await ref.getDownloadURL();
+        await db.collection('gallery').add({ url, path, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        done++;
+      } catch(e) { toast('Ralat muat naik: ' + file.name, 'err'); }
+    }
+    wrap.style.display = 'none';
+    fill.style.width   = '0%';
+    document.getElementById('gallery-input').value = '';
+    if (done) toast(`${done} gambar berjaya dimuat naik!`);
+    loadGallery();
+  }
+
+  async function deleteImage(docId, path) {
+    if (!confirm('Padam gambar ini secara kekal?')) return;
+    try {
+      await db.collection('gallery').doc(docId).delete();
+      if (path) await storage.ref().child(path).delete().catch(()=>{});
+      toast('Gambar dipadam.');
+      loadGallery();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // TESTIMONIALS
+  // ════════════════════════════════════════════════════════
+  let testiCache = [];
+
+  async function loadTestimonials() {
+    try {
+      const snap = await db.collection('testimonials').orderBy('createdAt','asc').get();
+      testiCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTestiList();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderTestiList() {
+    const el = document.getElementById('testi-list');
+    if (!testiCache.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">💬</div><p>Belum ada testimoni. Tambah testimoni pertama!</p></div>';
+      return;
+    }
+    el.innerHTML = testiCache.map(t => `
+      <div class="list-item">
+        <div class="list-item-body">
+          <div class="list-item-title">${esc(t.name)} <span style="color:#F5A623;">${'★'.repeat(t.rating||5)}</span></div>
+          <div class="list-item-sub" style="color:var(--rose);font-size:0.75rem;">${esc(t.tag||'')}</div>
+          <div class="list-item-sub">${esc(t.review||'')}</div>
+        </div>
+        <div class="list-item-actions">
+          <button class="btn-edit"   onclick="editTesti('${t.id}')">Edit</button>
+          <button class="btn-danger" onclick="deleteTesti('${t.id}')">Padam</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function openTestiModal() {
+    document.getElementById('testi-modal-title').textContent = 'Tambah Testimoni';
+    document.getElementById('testi-id').value    = '';
+    document.getElementById('t-name').value      = '';
+    document.getElementById('t-tag').value       = '';
+    document.getElementById('t-review').value    = '';
+    setRating(5);
+    openModal('testi-modal');
+  }
+
+  function editTesti(id) {
+    const t = testiCache.find(x => x.id === id);
+    if (!t) return;
+    document.getElementById('testi-modal-title').textContent = 'Edit Testimoni';
+    document.getElementById('testi-id').value = id;
+    document.getElementById('t-name').value   = t.name   || '';
+    document.getElementById('t-tag').value    = t.tag    || '';
+    document.getElementById('t-review').value = t.review || '';
+    setRating(t.rating || 5);
+    openModal('testi-modal');
+  }
+
+  async function saveTesti(btn) {
+    const name   = document.getElementById('t-name').value.trim();
+    const tag    = document.getElementById('t-tag').value.trim();
+    const review = document.getElementById('t-review').value.trim();
+    const rating = parseInt(document.getElementById('t-rating').value);
+    const docId  = document.getElementById('testi-id').value;
+    if (!name || !review) { toast('Sila isi nama dan ulasan.', 'err'); return; }
+    btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled  = true;
+    try {
+      const data = { name, tag, review, rating, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if (docId) {
+        await db.collection('testimonials').doc(docId).update(data);
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('testimonials').add(data);
+      }
+      toast('Testimoni berjaya disimpan!');
+      closeModal('testi-modal');
+      loadTestimonials();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+    btn.innerHTML = '💾 Simpan';
+    btn.disabled  = false;
+  }
+
+  async function deleteTesti(id) {
+    if (!confirm('Padam testimoni ini?')) return;
+    try {
+      await db.collection('testimonials').doc(id).delete();
+      toast('Testimoni dipadam.');
+      loadTestimonials();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  function setRating(val) {
+    document.getElementById('t-rating').value = val;
+    document.querySelectorAll('.star').forEach(s =>
+      s.classList.toggle('on', parseInt(s.dataset.v) <= val));
+  }
+
+  // ════════════════════════════════════════════════════════
+  // FAQ
+  // ════════════════════════════════════════════════════════
+  let faqCache = [];
+
+  async function loadFaq() {
+    try {
+      const snap = await db.collection('faq').orderBy('createdAt','asc').get();
+      faqCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderFaqList();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderFaqList() {
+    const el = document.getElementById('faq-list');
+    if (!faqCache.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">❓</div><p>Belum ada soalan. Tambah soalan pertama!</p></div>';
+      return;
+    }
+    el.innerHTML = faqCache.map(f => `
+      <div class="list-item">
+        <div class="list-item-body">
+          <div class="list-item-title">${esc(f.question||'')}</div>
+          <div class="list-item-sub">${esc(f.answer||'')}</div>
+        </div>
+        <div class="list-item-actions">
+          <button class="btn-edit"   onclick="editFaq('${f.id}')">Edit</button>
+          <button class="btn-danger" onclick="deleteFaq('${f.id}')">Padam</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function openFaqModal() {
+    document.getElementById('faq-modal-title').textContent = 'Tambah Soalan';
+    document.getElementById('faq-id').value    = '';
+    document.getElementById('f-question').value = '';
+    document.getElementById('f-answer').value   = '';
+    openModal('faq-modal');
+  }
+
+  function editFaq(id) {
+    const f = faqCache.find(x => x.id === id);
+    if (!f) return;
+    document.getElementById('faq-modal-title').textContent = 'Edit Soalan';
+    document.getElementById('faq-id').value     = id;
+    document.getElementById('f-question').value = f.question || '';
+    document.getElementById('f-answer').value   = f.answer   || '';
+    openModal('faq-modal');
+  }
+
+  async function saveFaq(btn) {
+    const question = document.getElementById('f-question').value.trim();
+    const answer   = document.getElementById('f-answer').value.trim();
+    const docId    = document.getElementById('faq-id').value;
+    if (!question || !answer) { toast('Sila isi soalan dan jawapan.', 'err'); return; }
+    btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled  = true;
+    try {
+      const data = { question, answer, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if (docId) {
+        await db.collection('faq').doc(docId).update(data);
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('faq').add(data);
+      }
+      toast('Soalan berjaya disimpan!');
+      closeModal('faq-modal');
+      loadFaq();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+    btn.innerHTML = '💾 Simpan';
+    btn.disabled  = false;
+  }
+
+  async function deleteFaq(id) {
+    if (!confirm('Padam soalan ini?')) return;
+    try {
+      await db.collection('faq').doc(id).delete();
+      toast('Soalan dipadam.');
+      loadFaq();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  // ── Helpers ─────────────────────────────────────────────
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
