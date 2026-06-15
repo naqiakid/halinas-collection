@@ -522,8 +522,24 @@
       font-weight: 600; cursor: pointer; transition: background 0.2s;
     }
     .btn-reg-wa:hover { background: #1da851; }
+    /* Date chips */
+    .reg-date-lbl { font-size: 0.82rem; font-weight: 600; color: var(--dark); margin-bottom: 8px; }
+    .reg-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+    .reg-date-chip {
+      border: 2px solid #eee; border-radius: 12px; padding: 14px 10px;
+      cursor: pointer; text-align: center; transition: all 0.15s;
+      background: white; user-select: none;
+    }
+    .reg-date-chip:hover { border-color: var(--rose-lt); background: var(--rose-lt); }
+    .reg-date-chip.selected { border-color: var(--rose); background: var(--rose); color: white; }
+    .reg-date-chip-day { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; margin-bottom: 4px; }
+    .reg-date-chip-date { font-size: 0.88rem; font-weight: 700; line-height: 1.3; }
+    .reg-date-chip-time { font-size: 0.75rem; margin-top: 4px; opacity: 0.75; }
+    .reg-date-chip.selected .reg-date-chip-day,
+    .reg-date-chip.selected .reg-date-chip-time { opacity: 0.85; }
     @media (max-width: 600px) {
       .reg-modal { padding: 28px 20px; border-radius: 16px; }
+      .reg-dates { grid-template-columns: 1fr; }
     }
 
     /* ── Gallery ────────────────────────────────────────── */
@@ -1747,9 +1763,8 @@
       <div class="reg-field">
         <input type="email" id="reg-email" placeholder="E-mel (pilihan)" autocomplete="email" />
       </div>
-      <div class="reg-field">
-        <input type="text" id="reg-tarikh" placeholder="Tarikh Pilihan (contoh: Sabtu, Julai 2026)" />
-      </div>
+
+      <div id="reg-dates-container"></div>
 
       <p class="reg-error" id="reg-error"></p>
 
@@ -1782,22 +1797,85 @@
 
 <script>
 // ── Registration Modal ──────────────────────────────────
-let _regKelas   = '';
-let _regKelasId = '';
+const _HARI  = ['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
+const _BULAN = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep','Okt','Nov','Dis'];
 
-function openRegModal(kelasNama, kelasId) {
-  _regKelas   = kelasNama;
-  _regKelasId = kelasId;
-  document.getElementById('reg-class-name').textContent = kelasNama;
-  document.getElementById('reg-nama').value    = '';
-  document.getElementById('reg-telefon').value = '';
-  document.getElementById('reg-email').value   = '';
-  document.getElementById('reg-tarikh').value  = '';
-  document.getElementById('reg-error').textContent = '';
-  document.getElementById('reg-form-body').style.display = '';
-  document.getElementById('reg-success').style.display   = 'none';
+let _regKelas     = '';
+let _regKelasId   = '';
+let _selectedDate = null;
+let _hasDates     = false;
+
+async function openRegModal(kelasNama, kelasId) {
+  _regKelas     = kelasNama;
+  _regKelasId   = kelasId;
+  _selectedDate = null;
+  _hasDates     = false;
+
+  document.getElementById('reg-class-name').textContent   = kelasNama;
+  document.getElementById('reg-nama').value               = '';
+  document.getElementById('reg-telefon').value            = '';
+  document.getElementById('reg-email').value              = '';
+  document.getElementById('reg-error').textContent        = '';
+  document.getElementById('reg-form-body').style.display  = '';
+  document.getElementById('reg-success').style.display    = 'none';
   document.getElementById('reg-overlay').classList.add('open');
+
+  const container = document.getElementById('reg-dates-container');
+  container.innerHTML = '<p style="color:var(--mid);font-size:0.83rem;padding:4px 0 14px;">Memuatkan tarikh tersedia...</p>';
+
+  if (kelasId) {
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const db    = firebase.firestore();
+      const snap  = await db.collection('classes').doc(kelasId).get();
+      if (snap.exists) {
+        const today = new Date().toISOString().split('T')[0];
+        const dates = (snap.data().tarikhTersedia || [])
+          .filter(d => d.tarikh >= today)
+          .sort((a, b) => a.tarikh.localeCompare(b.tarikh));
+        if (dates.length) { renderDateChips(dates); return; }
+      }
+    } catch(e) {}
+  }
+
+  // Fallback — free-text input
+  container.innerHTML = `<div class="reg-field">
+    <input type="text" id="reg-tarikh-text" placeholder="Tarikh Pilihan (contoh: Sabtu, Julai 2026)" />
+  </div>`;
   setTimeout(() => document.getElementById('reg-nama').focus(), 100);
+}
+
+function renderDateChips(dates) {
+  _hasDates = true;
+  document.getElementById('reg-dates-container').innerHTML = `
+    <p class="reg-date-lbl">Pilih Tarikh Kelas <span style="color:#c0392b;">*</span></p>
+    <div class="reg-dates">
+      ${dates.map(d => {
+        const dt  = new Date(d.tarikh + 'T12:00:00');
+        const day = _HARI[dt.getDay()];
+        const lbl = `${dt.getDate()} ${_BULAN[dt.getMonth()]} ${dt.getFullYear()}`;
+        return `<div class="reg-date-chip"
+          onclick="selectDate(this,'${d.tarikh}','${day}, ${lbl}','${d.masa||''}')"
+          data-tarikh="${d.tarikh}">
+          <div class="reg-date-chip-day">${day}</div>
+          <div class="reg-date-chip-date">${lbl}</div>
+          ${d.masa ? `<div class="reg-date-chip-time">${d.masa}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  setTimeout(() => document.getElementById('reg-nama').focus(), 100);
+}
+
+function selectDate(el, tarikh, label, masa) {
+  document.querySelectorAll('.reg-date-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedDate = { tarikh, label, masa };
+}
+
+function _getTarikh() {
+  if (_selectedDate) return _selectedDate.label + (_selectedDate.masa ? ' · ' + _selectedDate.masa : '');
+  const t = document.getElementById('reg-tarikh-text');
+  return t ? t.value.trim() : '';
 }
 
 function closeRegModal() {
@@ -1812,32 +1890,28 @@ async function submitRegistration(btn) {
   const nama    = document.getElementById('reg-nama').value.trim();
   const telefon = document.getElementById('reg-telefon').value.trim();
   const email   = document.getElementById('reg-email').value.trim();
-  const tarikh  = document.getElementById('reg-tarikh').value.trim();
+  const tarikh  = _getTarikh();
   const errEl   = document.getElementById('reg-error');
 
-  if (!nama)    { errEl.textContent = 'Sila isi nama penuh.';       return; }
-  if (!telefon) { errEl.textContent = 'Sila isi nombor telefon.';   return; }
+  if (!nama)                       { errEl.textContent = 'Sila isi nama penuh.';      return; }
+  if (!telefon)                    { errEl.textContent = 'Sila isi nombor telefon.';  return; }
+  if (_hasDates && !_selectedDate) { errEl.textContent = 'Sila pilih tarikh kelas.'; return; }
   errEl.textContent = '';
 
   btn.disabled    = true;
   btn.textContent = 'Menghantar...';
-
   try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     await db.collection('registrations').add({
       nama, telefon, email, tarikh,
-      kelas:   _regKelas,
-      kelasId: _regKelasId,
-      status:  'baru',
+      kelas: _regKelas, kelasId: _regKelasId,
+      status: 'baru',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     document.getElementById('reg-form-body').style.display = 'none';
     document.getElementById('reg-success').style.display   = '';
-  } catch(e) {
-    errEl.textContent = 'Ralat: ' + e.message;
-  }
-
+  } catch(e) { errEl.textContent = 'Ralat: ' + e.message; }
   btn.disabled    = false;
   btn.textContent = '💾 Hantar Pendaftaran';
 }
@@ -1845,13 +1919,13 @@ async function submitRegistration(btn) {
 function openRegWhatsApp() {
   const nama    = document.getElementById('reg-nama').value.trim();
   const telefon = document.getElementById('reg-telefon').value.trim();
-  const tarikh  = document.getElementById('reg-tarikh').value.trim();
+  const tarikh  = _getTarikh();
   const waNum   = window._waNum || '60XXXXXXXXX';
 
   let msg = `Assalamualaikum Halina's Collection! 😊\n\nSaya ingin mendaftar untuk kelas berikut:\n\n📚 *Kelas:* ${_regKelas}`;
   if (nama)    msg += `\n👤 *Nama:* ${nama}`;
   if (telefon) msg += `\n📱 *Telefon:* ${telefon}`;
-  if (tarikh)  msg += `\n📅 *Tarikh Pilihan:* ${tarikh}`;
+  if (tarikh)  msg += `\n📅 *Tarikh:* ${tarikh}`;
   msg += '\n\nSila hubungi saya untuk pengesahan. Terima kasih! 🙏';
 
   window.open('https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg), '_blank');

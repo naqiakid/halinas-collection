@@ -697,6 +697,16 @@
         </label>
       </div>
     </div>
+    <hr style="margin:20px 0;border:none;border-top:1px solid #F0F0F0;" />
+    <div class="form-group">
+      <label>Tarikh Tersedia <small style="color:var(--mid);font-weight:400;">Tarikh kelas yang boleh dipilih pelajar semasa daftar</small></label>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <input type="date" id="k-new-date" class="form-control" style="flex:1;min-width:140px;" />
+        <input type="time" id="k-new-time" class="form-control" style="width:110px;" value="09:00" />
+        <button type="button" onclick="addKelasDate()" class="btn-add" style="white-space:nowrap;flex-shrink:0;">+ Tambah</button>
+      </div>
+      <div id="k-dates-list" style="margin-top:10px;"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('kelas-modal')">Batal</button>
       <button class="btn-save" onclick="saveKelas(this)">💾 Simpan</button>
@@ -1227,7 +1237,46 @@
   // ════════════════════════════════════════════════════════
   // KELAS
   // ════════════════════════════════════════════════════════
-  let kelasCache = [];
+  let kelasCache    = [];
+  let kelasDateList = [];
+
+  const _HARI_ADM  = ['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
+  const _BULAN_ADM = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep','Okt','Nov','Dis'];
+
+  function formatDateLabel(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return `${_HARI_ADM[d.getDay()]}, ${d.getDate()} ${_BULAN_ADM[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function renderKelasDateList() {
+    const el = document.getElementById('k-dates-list');
+    if (!el) return;
+    if (!kelasDateList.length) {
+      el.innerHTML = '<p style="font-size:0.8rem;color:var(--mid);text-align:center;padding:10px 0;">Belum ada tarikh. Tarikh yang ditambah akan muncul di sini.</p>';
+      return;
+    }
+    el.innerHTML = kelasDateList.map((d, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#f9f9fb;border-radius:8px;margin-bottom:6px;border:1px solid #eee;">
+        <span style="font-size:0.85rem;">📅 <strong>${esc(d.label)}</strong>${d.masa ? ' · ' + esc(d.masa) : ''}</span>
+        <button type="button" onclick="removeKelasDate(${i})" style="background:none;border:none;color:#e53;cursor:pointer;font-size:1.2rem;padding:0 4px;line-height:1;">×</button>
+      </div>`).join('');
+  }
+
+  function addKelasDate() {
+    const dateVal = document.getElementById('k-new-date').value;
+    const timeVal = document.getElementById('k-new-time').value;
+    if (!dateVal) { toast('Sila pilih tarikh.', 'err'); return; }
+    if (kelasDateList.find(d => d.tarikh === dateVal)) { toast('Tarikh ini sudah ditambah.', 'err'); return; }
+    kelasDateList.push({ tarikh: dateVal, masa: timeVal, label: formatDateLabel(dateVal) });
+    kelasDateList.sort((a, b) => a.tarikh.localeCompare(b.tarikh));
+    document.getElementById('k-new-date').value = '';
+    renderKelasDateList();
+  }
+
+  function removeKelasDate(idx) {
+    kelasDateList.splice(idx, 1);
+    renderKelasDateList();
+  }
 
   const tahapColors = {
     'Pemula':        '#4CAF50',
@@ -1279,6 +1328,9 @@
     document.getElementById('k-dipelajari').value = '';
     document.getElementById('k-urutan').value     = kelasCache.length + 1;
     document.getElementById('k-aktif').checked    = true;
+    document.getElementById('k-new-date').value   = '';
+    kelasDateList = [];
+    renderKelasDateList();
     openModal('kelas-modal');
   }
 
@@ -1296,6 +1348,9 @@
     document.getElementById('k-dipelajari').value = (k.dipelajari || []).join('\n');
     document.getElementById('k-urutan').value     = k.urutan      || 1;
     document.getElementById('k-aktif').checked    = k.aktif !== false;
+    document.getElementById('k-new-date').value   = '';
+    kelasDateList = (k.tarikhTersedia || []).map(d => ({ ...d }));
+    renderKelasDateList();
     openModal('kelas-modal');
   }
 
@@ -1315,6 +1370,7 @@
     btn.disabled  = true;
     try {
       const data = { nama, tahap, tempoh, harga, penerangan, termasuk, dipelajari, urutan, aktif,
+                     tarikhTersedia: kelasDateList,
                      updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
       if (docId) {
         await db.collection('classes').doc(docId).update(data);
