@@ -246,6 +246,38 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── CATEGORY SELECTOR ───────────────────────────── */
+    .cat-label { font-size:0.82rem; font-weight:600; color:var(--mid); margin-bottom:10px; }
+    .cat-btns { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+    .cat-btn {
+      display:flex; flex-direction:column; align-items:center; text-align:center;
+      padding:14px 8px; border:2px solid #EBEBEB; border-radius:12px;
+      background:white; cursor:pointer; transition:all 0.2s;
+      font-family:'Poppins',sans-serif;
+    }
+    .cat-btn:hover { border-color:var(--rose-lt); background:#FFF8FA; }
+    .cat-btn.active { border-color:var(--rose); background:var(--rose-lt); }
+    .cat-icon { font-size:1.4rem; margin-bottom:4px; }
+    .cat-name { font-size:0.8rem; font-weight:600; color:var(--dark); }
+    .cat-desc { font-size:0.68rem; color:var(--mid); margin-top:2px; }
+    .cat-badge {
+      position:absolute; bottom:6px; left:6px;
+      background:rgba(0,0,0,0.72); color:white;
+      font-size:0.6rem; font-weight:700; padding:3px 7px;
+      border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none;
+    }
+    .cat-change {
+      position:absolute; top:6px; right:6px;
+      background:rgba(0,0,0,0.7); color:white; border:none;
+      border-radius:6px; padding:4px 8px; font-size:0.7rem;
+      cursor:pointer; font-family:'Poppins',sans-serif; font-weight:600;
+      opacity:0; transition:opacity 0.2s; white-space:nowrap;
+    }
+    .gallery-thumb:hover .cat-change { opacity:1; }
+    @media (max-width:600px) {
+      .cat-btns { grid-template-columns:repeat(2,1fr); }
+    }
+
     /* ── MOBILE ───────────────────────────────────────── */
     @media (max-width: 768px) {
       .sidebar {
@@ -354,10 +386,35 @@
     <div class="panel" id="panel-gallery">
       <div class="page-header">
         <h1 class="page-title">Galeri Foto</h1>
-        <p class="page-subtitle">Muat naik dan urus gambar yang dipaparkan di laman web</p>
+        <p class="page-subtitle">Pilih bahagian, kemudian muat naik gambar — gambar akan muncul di tempat yang betul pada laman web</p>
       </div>
       <div class="card">
-        <div class="upload-area" id="upload-area">
+        <h3 class="card-title">Muat Naik Gambar Baru</h3>
+        <p class="cat-label">Langkah 1 — Pilih bahagian untuk gambar ini:</p>
+        <div class="cat-btns">
+          <button class="cat-btn active" data-cat="galeri" onclick="selectCat(this)">
+            <span class="cat-icon">🖼️</span>
+            <span class="cat-name">Galeri</span>
+            <span class="cat-desc">Grid galeri utama</span>
+          </button>
+          <button class="cat-btn" data-cat="hero" onclick="selectCat(this)">
+            <span class="cat-icon">🌟</span>
+            <span class="cat-name">Hero</span>
+            <span class="cat-desc">Gambar utama homepage</span>
+          </button>
+          <button class="cat-btn" data-cat="tentang" onclick="selectCat(this)">
+            <span class="cat-icon">🏫</span>
+            <span class="cat-name">Tentang Kami</span>
+            <span class="cat-desc">Bahagian About HC</span>
+          </button>
+          <button class="cat-btn" data-cat="jurulatih" onclick="selectCat(this)">
+            <span class="cat-icon">👩‍🏫</span>
+            <span class="cat-name">Jurulatih</span>
+            <span class="cat-desc">Foto profil jurulatih</span>
+          </button>
+        </div>
+        <p class="cat-label" style="margin-bottom:10px;">Langkah 2 — Muat naik gambar:</p>
+        <div class="upload-area" onclick="document.getElementById('gallery-input').click()">
           <input type="file" id="gallery-input" accept="image/*" multiple
             onchange="uploadImages(this.files)" onclick="event.stopPropagation()" />
           <div class="upload-icon">📸</div>
@@ -367,6 +424,16 @@
         <div class="progress-wrap" id="progress-wrap">
           <div class="progress-label" id="progress-label">Memuat naik...</div>
           <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Semua Gambar</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="filter-btns">
+          <button class="btn-add active" style="font-size:0.78rem;padding:6px 14px;" onclick="filterGallery('semua',this)">Semua</button>
+          <button class="btn-add" style="font-size:0.78rem;padding:6px 14px;background:white;color:var(--mid);border-color:#DDD;" onclick="filterGallery('galeri',this)">🖼️ Galeri</button>
+          <button class="btn-add" style="font-size:0.78rem;padding:6px 14px;background:white;color:var(--mid);border-color:#DDD;" onclick="filterGallery('hero',this)">🌟 Hero</button>
+          <button class="btn-add" style="font-size:0.78rem;padding:6px 14px;background:white;color:var(--mid);border-color:#DDD;" onclick="filterGallery('tentang',this)">🏫 Tentang Kami</button>
+          <button class="btn-add" style="font-size:0.78rem;padding:6px 14px;background:white;color:var(--mid);border-color:#DDD;" onclick="filterGallery('jurulatih',this)">👩‍🏫 Jurulatih</button>
         </div>
         <div class="gallery-grid-admin" id="gallery-admin-grid">
           <div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🖼️</div><p>Belum ada gambar. Muat naik gambar pertama!</p></div>
@@ -469,6 +536,17 @@
       <button class="btn-cancel" onclick="closeModal('faq-modal')">Batal</button>
       <button class="btn-save" onclick="saveFaq(this)">💾 Simpan</button>
     </div>
+  </div>
+</div>
+
+<!-- ── CHANGE CATEGORY MODAL ────────────────────────────── -->
+<div class="modal-overlay" id="change-cat-modal" onclick="overlayClose(event,'change-cat-modal')">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Tukar Bahagian Gambar</h3>
+      <button class="modal-close" onclick="closeModal('change-cat-modal')">✕</button>
+    </div>
+    <div id="change-cat-body"></div>
   </div>
 </div>
 
@@ -590,26 +668,69 @@
   // ════════════════════════════════════════════════════════
   // GALLERY
   // ════════════════════════════════════════════════════════
+  let selectedCat = 'galeri';
+  let galleryCache = [];
+  let activeFilter = 'semua';
+
+  const catLabels = {
+    galeri:    '🖼️ Galeri',
+    hero:      '🌟 Hero',
+    tentang:   '🏫 Tentang Kami',
+    jurulatih: '👩‍🏫 Jurulatih'
+  };
+
+  function selectCat(btn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCat = btn.dataset.cat;
+  }
+
+  function filterGallery(cat, btn) {
+    activeFilter = cat;
+    document.querySelectorAll('#filter-btns button').forEach(b => {
+      b.classList.remove('active');
+      b.style.background = 'white';
+      b.style.color = 'var(--mid)';
+      b.style.borderColor = '#DDD';
+    });
+    btn.classList.add('active');
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    renderGalleryGrid();
+  }
+
+  function renderGalleryGrid() {
+    const grid = document.getElementById('gallery-admin-grid');
+    const items = activeFilter === 'semua'
+      ? galleryCache
+      : galleryCache.filter(d => (d.category || 'galeri') === activeFilter);
+
+    if (!items.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🖼️</div><p>Tiada gambar dalam kategori ini.</p></div>`;
+      return;
+    }
+    grid.innerHTML = '';
+    items.forEach(d => {
+      const cat = d.category || 'galeri';
+      const div = document.createElement('div');
+      div.className = 'gallery-thumb';
+      div.innerHTML = `
+        <img src="${d.url}" alt="Gallery" loading="lazy" />
+        <span class="cat-badge">${catLabels[cat] || cat}</span>
+        <button class="cat-change" onclick="openChangeCat('${d.id}','${cat}')">✏️ Tukar Bahagian</button>
+        <div class="del-overlay">
+          <button class="del-btn" onclick="deleteImage('${d.id}','${d.path||''}')">🗑️ Padam</button>
+        </div>`;
+      grid.appendChild(div);
+    });
+  }
+
   async function loadGallery() {
     try {
       const snap = await db.collection('gallery').orderBy('createdAt','desc').get();
-      const grid = document.getElementById('gallery-admin-grid');
-      if (snap.empty) {
-        grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🖼️</div><p>Belum ada gambar. Muat naik gambar pertama!</p></div>';
-        return;
-      }
-      grid.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        const div = document.createElement('div');
-        div.className = 'gallery-thumb';
-        div.innerHTML = `
-          <img src="${d.url}" alt="Gallery" loading="lazy" />
-          <div class="del-overlay">
-            <button class="del-btn" onclick="deleteImage('${doc.id}','${d.path||''}')">🗑️ Padam</button>
-          </div>`;
-        grid.appendChild(div);
-      });
+      galleryCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderGalleryGrid();
     } catch(e) { console.error(e); }
   }
 
@@ -631,14 +752,18 @@
             rej, res)
         );
         const url = await ref.getDownloadURL();
-        await db.collection('gallery').add({ url, path, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('gallery').add({
+          url, path,
+          category: selectedCat,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
         done++;
       } catch(e) { toast('Ralat muat naik: ' + file.name, 'err'); }
     }
     wrap.style.display = 'none';
     fill.style.width   = '0%';
     document.getElementById('gallery-input').value = '';
-    if (done) toast(`${done} gambar berjaya dimuat naik!`);
+    if (done) toast(`${done} gambar berjaya dimuat naik ke bahagian "${catLabels[selectedCat]}"!`);
     loadGallery();
   }
 
@@ -648,6 +773,33 @@
       await db.collection('gallery').doc(docId).delete();
       if (path) await storage.ref().child(path).delete().catch(()=>{});
       toast('Gambar dipadam.');
+      loadGallery();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  function openChangeCat(docId, currentCat) {
+    const options = Object.entries(catLabels)
+      .map(([val, label]) => `<option value="${val}" ${val === currentCat ? 'selected' : ''}>${label}</option>`)
+      .join('');
+    const sel = `
+      <div style="padding:16px;">
+        <p style="font-size:0.85rem;font-weight:600;margin-bottom:10px;">Tukar bahagian gambar ini:</p>
+        <select id="change-cat-select" class="form-control" style="margin-bottom:12px;">${options}</select>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-save" style="flex:1;" onclick="saveCatChange('${docId}')">💾 Simpan</button>
+          <button class="btn-cancel" onclick="closeModal('change-cat-modal')">Batal</button>
+        </div>
+      </div>`;
+    document.getElementById('change-cat-body').innerHTML = sel;
+    openModal('change-cat-modal');
+  }
+
+  async function saveCatChange(docId) {
+    const newCat = document.getElementById('change-cat-select').value;
+    try {
+      await db.collection('gallery').doc(docId).update({ category: newCat });
+      toast(`Gambar dipindah ke "${catLabels[newCat]}"!`);
+      closeModal('change-cat-modal');
       loadGallery();
     } catch(e) { toast('Ralat: ' + e.message, 'err'); }
   }

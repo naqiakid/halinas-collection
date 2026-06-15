@@ -945,6 +945,7 @@
       </div>
       <div class="hero-image-wrap">
         <img
+          id="hero-img"
           src="https://placehold.co/520x650/F4D6E1/B85C7A?text=Pelajar+Menjahit"
           alt="Pelajar Halina's Collection"
           class="hero-img-main"
@@ -1292,8 +1293,8 @@
   <div class="container">
     <div class="about-inner">
       <div class="about-photos">
-        <img src="https://placehold.co/280x380/3D3D3D/B85C7A?text=Workshop" alt="Workshop" class="about-photo" />
-        <img src="https://placehold.co/280x380/3D3D3D/D4956A?text=Halina" alt="Halina" class="about-photo" />
+        <img id="about-photo-1" src="https://placehold.co/280x380/3D3D3D/B85C7A?text=Workshop" alt="Workshop" class="about-photo" />
+        <img id="about-photo-2" src="https://placehold.co/280x380/3D3D3D/D4956A?text=Halina" alt="Halina" class="about-photo" />
       </div>
       <div class="about-text-content">
         <p class="section-label about-label">Tentang Kami</p>
@@ -1319,7 +1320,7 @@
         <div class="trainer-section">
           <div class="trainer-label">Jurulatih Kami</div>
           <div class="trainer-card">
-            <img src="https://placehold.co/72x72/B85C7A/FFFFFF?text=H" alt="Halina" class="trainer-photo" />
+            <img id="trainer-photo" src="https://placehold.co/72x72/B85C7A/FFFFFF?text=H" alt="Halina" class="trainer-photo" />
             <div>
               <div class="trainer-name">Halina</div>
               <div class="trainer-role">Pengasas &amp; Jurulatih Utama</div>
@@ -1522,18 +1523,36 @@
       if (hoursEl && d.hours) hoursEl.innerHTML = d.hours.replace(/\n/g, '<br/>');
     }
 
-    // Gallery
+    // Gallery — load all, then route by category
     const gallerySnap = await db.collection('gallery').orderBy('createdAt', 'asc').get();
     if (!gallerySnap.empty) {
-      const grid = document.getElementById('gallery-grid');
-      grid.innerHTML = '';
-      gallerySnap.forEach(doc => {
-        const d = doc.data();
-        const div = document.createElement('div');
-        div.className = 'gallery-item';
-        div.innerHTML = `<img src="${d.url}" alt="Galeri Halina's Collection" loading="lazy"/><div class="overlay"></div>`;
-        grid.appendChild(div);
-      });
+      const all = gallerySnap.docs.map(d => ({ ...d.data() }));
+
+      // Hero image
+      const heroImg = all.find(d => d.category === 'hero');
+      if (heroImg) document.getElementById('hero-img').src = heroImg.url;
+
+      // About photos
+      const aboutImgs = all.filter(d => d.category === 'tentang');
+      if (aboutImgs[0]) document.getElementById('about-photo-1').src = aboutImgs[0].url;
+      if (aboutImgs[1]) document.getElementById('about-photo-2').src = aboutImgs[1].url;
+
+      // Trainer photo
+      const trainerImg = all.find(d => d.category === 'jurulatih');
+      if (trainerImg) document.getElementById('trainer-photo').src = trainerImg.url;
+
+      // Gallery grid — only "galeri" category
+      const galeriImgs = all.filter(d => !d.category || d.category === 'galeri');
+      if (galeriImgs.length) {
+        const grid = document.getElementById('gallery-grid');
+        grid.innerHTML = '';
+        galeriImgs.forEach(d => {
+          const div = document.createElement('div');
+          div.className = 'gallery-item';
+          div.innerHTML = `<img src="${d.url}" alt="Galeri Halina's Collection" loading="lazy"/><div class="overlay"></div>`;
+          grid.appendChild(div);
+        });
+      }
     }
 
     // Testimonials
