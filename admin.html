@@ -142,6 +142,11 @@
       cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
     }
     .btn-add:hover { background: var(--rose); color: white; border-color: var(--rose); }
+    .kcal-day { width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;font-size:0.83rem;margin:0 auto;transition:background 0.15s;border:none; }
+    .kcal-day:hover:not(.kcal-sel) { background:#f0dae3; }
+    .kcal-day.kcal-sel { background:#B85C7A;color:#fff;font-weight:700; }
+    .kcal-day.kcal-sel:hover { background:#a04d6a; }
+    .kcal-day.kcal-today:not(.kcal-sel) { border:2px solid #B85C7A;color:#B85C7A;font-weight:700; }
     .btn-edit {
       padding: 5px 12px; background: #E8F4FD; color: #2980B9; border: none;
       border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 0.75rem;
@@ -700,16 +705,19 @@
     <hr style="margin:20px 0;border:none;border-top:1px solid #F0F0F0;" />
     <div class="form-group">
       <label>Tarikh Tersedia <small style="color:var(--mid);font-weight:400;">Tarikh kelas yang boleh dipilih pelajar semasa daftar</small></label>
-      <!-- Single date -->
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">
-        <input type="date" id="k-new-date" class="form-control" style="flex:1;min-width:140px;" />
-        <input type="time" id="k-new-time" class="form-control" style="width:110px;" value="09:00" />
-        <button type="button" onclick="addKelasDate()" class="btn-add" style="white-space:nowrap;flex-shrink:0;">+ Tambah</button>
+      <!-- Time input (applies to all calendar clicks & batch adds) -->
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 10px;flex-wrap:wrap;">
+        <span style="font-size:0.83rem;color:var(--mid);white-space:nowrap;">Masa kelas:</span>
+        <input type="time" id="k-new-time" class="form-control" style="width:120px;" value="09:00" />
+        <span style="font-size:0.73rem;color:#bbb;">Tetapkan masa sebelum klik tarikh</span>
       </div>
 
+      <!-- Calendar -->
+      <div id="k-dates-list"></div>
+
       <!-- Batch dates -->
-      <div style="margin-top:10px;padding:14px;background:#f5f5f7;border-radius:10px;border:1px solid #eee;">
-        <p style="font-size:0.78rem;font-weight:700;color:var(--mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📅 Tambah Berbilang Tarikh</p>
+      <div style="margin-top:12px;padding:14px;background:#f5f5f7;border-radius:10px;border:1px solid #eee;">
+        <p style="font-size:0.78rem;font-weight:700;color:var(--mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">⚡ Tambah Berbilang Tarikh</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div>
             <label style="font-size:0.75rem;color:var(--mid);display:block;margin-bottom:3px;">Dari Tarikh</label>
@@ -728,12 +736,9 @@
             <option value="harian">Setiap Hari</option>
             <option value="isnin-jumaat">Isnin – Jumaat</option>
           </select>
-          <input type="time" id="k-batch-time" class="form-control" style="width:110px;" value="09:00" />
-          <button type="button" onclick="addKelasDateBatch()" class="btn-add" style="white-space:nowrap;flex-shrink:0;background:#5C6BC0;">+ Tambah Semua</button>
+          <button type="button" onclick="addKelasDateBatch()" class="btn-add" style="white-space:nowrap;flex-shrink:0;background:#5C6BC0;color:#fff;border-color:#5C6BC0;">+ Tambah Semua</button>
         </div>
       </div>
-
-      <div id="k-dates-list" style="margin-top:12px;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('kelas-modal')">Batal</button>
@@ -1267,38 +1272,82 @@
   // ════════════════════════════════════════════════════════
   let kelasCache    = [];
   let kelasDateList = [];
+  let kelasCalYear  = new Date().getFullYear();
+  let kelasCalMonth = new Date().getMonth();
 
   const _HARI_ADM  = ['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
   const _BULAN_ADM = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep','Okt','Nov','Dis'];
+  const _BULAN_FULL = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
 
   function formatDateLabel(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
     return `${_HARI_ADM[d.getDay()]}, ${d.getDate()} ${_BULAN_ADM[d.getMonth()]} ${d.getFullYear()}`;
   }
 
-  function renderKelasDateList() {
+  function renderKelasDateList() { renderKelasCalendar(); }
+
+  function renderKelasCalendar() {
     const el = document.getElementById('k-dates-list');
     if (!el) return;
-    if (!kelasDateList.length) {
-      el.innerHTML = '<p style="font-size:0.8rem;color:var(--mid);text-align:center;padding:10px 0;">Belum ada tarikh. Tarikh yang ditambah akan muncul di sini.</p>';
-      return;
+    const y = kelasCalYear, m = kelasCalMonth;
+    const firstDay    = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const today       = new Date().toISOString().split('T')[0];
+
+    let grid = '';
+    for (let i = 0; i < firstDay; i++) grid += '<div></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds     = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isSel  = kelasDateList.some(x => x.tarikh === ds);
+      const cls    = 'kcal-day' + (isSel ? ' kcal-sel' : '') + (ds === today ? ' kcal-today' : '');
+      grid += `<div><div class="${cls}" onclick="toggleKelasDate('${ds}')">${d}</div></div>`;
     }
-    el.innerHTML = kelasDateList.map((d, i) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#f9f9fb;border-radius:8px;margin-bottom:6px;border:1px solid #eee;">
-        <span style="font-size:0.85rem;">📅 <strong>${esc(d.label)}</strong>${d.masa ? ' · ' + esc(d.masa) : ''}</span>
-        <button type="button" onclick="removeKelasDate(${i})" style="background:none;border:none;color:#e53;cursor:pointer;font-size:1.2rem;padding:0 4px;line-height:1;">×</button>
-      </div>`).join('');
+
+    const selList = kelasDateList.length ? `
+      <div style="border-top:1px solid #eee;padding:10px 12px 4px;max-height:160px;overflow-y:auto;">
+        <div style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${kelasDateList.length} tarikh dipilih</div>
+        ${kelasDateList.map((d, i) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5f5f5;">
+            <span style="font-size:0.8rem;">📅 <b>${esc(d.label)}</b>${d.masa ? ' · ' + esc(d.masa) : ''}</span>
+            <button type="button" onclick="removeKelasDate(${i})" style="background:none;border:none;color:#e53;cursor:pointer;font-size:1.1rem;padding:0 4px;">×</button>
+          </div>`).join('')}
+      </div>` : '';
+
+    el.innerHTML = `
+      <div style="border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;background:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f4f7;border-bottom:1px solid #e8e0e4;">
+          <button type="button" onclick="kelasCalPrev()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:#B85C7A;padding:0 6px;line-height:1;">‹</button>
+          <span style="font-weight:700;font-size:0.93rem;">${_BULAN_FULL[m]} ${y}</span>
+          <button type="button" onclick="kelasCalNext()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:#B85C7A;padding:0 6px;line-height:1;">›</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:8px 8px 4px;border-bottom:1px solid #f0e8ec;">
+          ${['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'].map(l => `<div style="text-align:center;font-size:0.68rem;font-weight:700;color:#aaa;">${l}</div>`).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:6px 8px 10px;">${grid}</div>
+        ${selList}
+      </div>`;
   }
 
-  function addKelasDate() {
-    const dateVal = document.getElementById('k-new-date').value;
-    const timeVal = document.getElementById('k-new-time').value;
-    if (!dateVal) { toast('Sila pilih tarikh.', 'err'); return; }
-    if (kelasDateList.find(d => d.tarikh === dateVal)) { toast('Tarikh ini sudah ditambah.', 'err'); return; }
-    kelasDateList.push({ tarikh: dateVal, masa: timeVal, label: formatDateLabel(dateVal) });
-    kelasDateList.sort((a, b) => a.tarikh.localeCompare(b.tarikh));
-    document.getElementById('k-new-date').value = '';
-    renderKelasDateList();
+  function kelasCalPrev() {
+    kelasCalMonth--;
+    if (kelasCalMonth < 0) { kelasCalMonth = 11; kelasCalYear--; }
+    renderKelasCalendar();
+  }
+  function kelasCalNext() {
+    kelasCalMonth++;
+    if (kelasCalMonth > 11) { kelasCalMonth = 0; kelasCalYear++; }
+    renderKelasCalendar();
+  }
+  function toggleKelasDate(dateStr) {
+    const idx = kelasDateList.findIndex(d => d.tarikh === dateStr);
+    if (idx >= 0) {
+      kelasDateList.splice(idx, 1);
+    } else {
+      const timeVal = document.getElementById('k-new-time').value;
+      kelasDateList.push({ tarikh: dateStr, masa: timeVal, label: formatDateLabel(dateStr) });
+      kelasDateList.sort((a, b) => a.tarikh.localeCompare(b.tarikh));
+    }
+    renderKelasCalendar();
   }
 
   function removeKelasDate(idx) {
@@ -1310,7 +1359,7 @@
     const fromVal  = document.getElementById('k-batch-from').value;
     const toVal    = document.getElementById('k-batch-to').value;
     const pattern  = document.getElementById('k-batch-pattern').value;
-    const timeVal  = document.getElementById('k-batch-time').value;
+    const timeVal  = document.getElementById('k-new-time').value;
 
     if (!fromVal || !toVal) { toast('Sila isi Dari Tarikh dan Hingga Tarikh.', 'err'); return; }
     if (fromVal > toVal)    { toast('Tarikh "Dari" mesti lebih awal daripada "Hingga".', 'err'); return; }
@@ -1395,8 +1444,10 @@
     document.getElementById('k-dipelajari').value = '';
     document.getElementById('k-urutan').value     = kelasCache.length + 1;
     document.getElementById('k-aktif').checked    = true;
-    document.getElementById('k-new-date').value   = '';
-    kelasDateList = [];
+    kelasDateList  = [];
+    const _now     = new Date();
+    kelasCalYear   = _now.getFullYear();
+    kelasCalMonth  = _now.getMonth();
     renderKelasDateList();
     openModal('kelas-modal');
   }
@@ -1415,8 +1466,12 @@
     document.getElementById('k-dipelajari').value = (k.dipelajari || []).join('\n');
     document.getElementById('k-urutan').value     = k.urutan      || 1;
     document.getElementById('k-aktif').checked    = k.aktif !== false;
-    document.getElementById('k-new-date').value   = '';
     kelasDateList = (k.tarikhTersedia || []).map(d => ({ ...d }));
+    const _today  = new Date().toISOString().split('T')[0];
+    const _first  = kelasDateList.find(d => d.tarikh >= _today) || kelasDateList[0];
+    const _nav    = _first ? new Date(_first.tarikh + 'T12:00:00') : new Date();
+    kelasCalYear  = _nav.getFullYear();
+    kelasCalMonth = _nav.getMonth();
     renderKelasDateList();
     openModal('kelas-modal');
   }
