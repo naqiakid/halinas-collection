@@ -700,12 +700,40 @@
     <hr style="margin:20px 0;border:none;border-top:1px solid #F0F0F0;" />
     <div class="form-group">
       <label>Tarikh Tersedia <small style="color:var(--mid);font-weight:400;">Tarikh kelas yang boleh dipilih pelajar semasa daftar</small></label>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <!-- Single date -->
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">
         <input type="date" id="k-new-date" class="form-control" style="flex:1;min-width:140px;" />
         <input type="time" id="k-new-time" class="form-control" style="width:110px;" value="09:00" />
         <button type="button" onclick="addKelasDate()" class="btn-add" style="white-space:nowrap;flex-shrink:0;">+ Tambah</button>
       </div>
-      <div id="k-dates-list" style="margin-top:10px;"></div>
+
+      <!-- Batch dates -->
+      <div style="margin-top:10px;padding:14px;background:#f5f5f7;border-radius:10px;border:1px solid #eee;">
+        <p style="font-size:0.78rem;font-weight:700;color:var(--mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📅 Tambah Berbilang Tarikh</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--mid);display:block;margin-bottom:3px;">Dari Tarikh</label>
+            <input type="date" id="k-batch-from" class="form-control" />
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--mid);display:block;margin-bottom:3px;">Hingga Tarikh</label>
+            <input type="date" id="k-batch-to" class="form-control" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="k-batch-pattern" class="form-control" style="flex:1;min-width:160px;">
+            <option value="hujungminggu">Hujung Minggu (Sabtu &amp; Ahad)</option>
+            <option value="sabtu">Setiap Sabtu sahaja</option>
+            <option value="ahad">Setiap Ahad sahaja</option>
+            <option value="harian">Setiap Hari</option>
+            <option value="isnin-jumaat">Isnin – Jumaat</option>
+          </select>
+          <input type="time" id="k-batch-time" class="form-control" style="width:110px;" value="09:00" />
+          <button type="button" onclick="addKelasDateBatch()" class="btn-add" style="white-space:nowrap;flex-shrink:0;background:#5C6BC0;">+ Tambah Semua</button>
+        </div>
+      </div>
+
+      <div id="k-dates-list" style="margin-top:12px;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('kelas-modal')">Batal</button>
@@ -1276,6 +1304,45 @@
   function removeKelasDate(idx) {
     kelasDateList.splice(idx, 1);
     renderKelasDateList();
+  }
+
+  function addKelasDateBatch() {
+    const fromVal  = document.getElementById('k-batch-from').value;
+    const toVal    = document.getElementById('k-batch-to').value;
+    const pattern  = document.getElementById('k-batch-pattern').value;
+    const timeVal  = document.getElementById('k-batch-time').value;
+
+    if (!fromVal || !toVal) { toast('Sila isi Dari Tarikh dan Hingga Tarikh.', 'err'); return; }
+    if (fromVal > toVal)    { toast('Tarikh "Dari" mesti lebih awal daripada "Hingga".', 'err'); return; }
+
+    const from = new Date(fromVal + 'T12:00:00');
+    const to   = new Date(toVal   + 'T12:00:00');
+    if (Math.round((to - from) / 86400000) > 365) { toast('Julat tarikh terlalu besar (maks 1 tahun).', 'err'); return; }
+
+    let added = 0;
+    const cur = new Date(from);
+    while (cur <= to) {
+      const day = cur.getDay(); // 0=Ahad 6=Sabtu
+      const include =
+        pattern === 'harian'       ? true :
+        pattern === 'sabtu'        ? day === 6 :
+        pattern === 'ahad'         ? day === 0 :
+        pattern === 'hujungminggu' ? (day === 0 || day === 6) :
+        pattern === 'isnin-jumaat' ? (day >= 1 && day <= 5) : false;
+
+      if (include) {
+        const dateStr = cur.toISOString().split('T')[0];
+        if (!kelasDateList.find(d => d.tarikh === dateStr)) {
+          kelasDateList.push({ tarikh: dateStr, masa: timeVal, label: formatDateLabel(dateStr) });
+          added++;
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    kelasDateList.sort((a, b) => a.tarikh.localeCompare(b.tarikh));
+    renderKelasDateList();
+    toast(added > 0 ? `${added} tarikh berjaya ditambah!` : 'Tiada tarikh baru — semua sudah ada dalam senarai.', added > 0 ? 'ok' : 'err');
   }
 
   const tahapColors = {
