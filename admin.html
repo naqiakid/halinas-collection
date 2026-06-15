@@ -341,6 +341,9 @@
       <div class="nav-item" data-panel="faq" onclick="showPanel('faq', this)">
         <span class="nav-icon">❓</span><span>FAQ</span>
       </div>
+      <div class="nav-item" data-panel="kelas" onclick="showPanel('kelas', this)">
+        <span class="nav-icon">📚</span><span>Kelas</span>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="doLogout()">🚪 Log Keluar</button>
@@ -475,6 +478,23 @@
       </div>
     </div>
 
+    <!-- KELAS PANEL -->
+    <div class="panel" id="panel-kelas">
+      <div class="page-header">
+        <h1 class="page-title">Pengurusan Kelas</h1>
+        <p class="page-subtitle">Tambah, edit dan urus kelas yang dipaparkan di laman web</p>
+      </div>
+      <div class="card">
+        <div class="list-header">
+          <h3 class="card-title">Senarai Kelas</h3>
+          <button class="btn-add" onclick="openKelasModal()">+ Tambah Kelas</button>
+        </div>
+        <div id="kelas-list">
+          <div class="empty"><div class="empty-icon">📚</div><p>Belum ada kelas. Tambah kelas pertama!</p></div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -547,6 +567,68 @@
       <button class="modal-close" onclick="closeModal('change-cat-modal')">✕</button>
     </div>
     <div id="change-cat-body"></div>
+  </div>
+</div>
+
+<!-- ── KELAS MODAL ───────────────────────────────────────── -->
+<div class="modal-overlay" id="kelas-modal" onclick="overlayClose(event,'kelas-modal')">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="kelas-modal-title">Tambah Kelas</h3>
+      <button class="modal-close" onclick="closeModal('kelas-modal')">✕</button>
+    </div>
+    <input type="hidden" id="kelas-id" />
+    <div class="form-group">
+      <label>Nama Kelas</label>
+      <input type="text" id="k-nama" class="form-control" placeholder="contoh: Beginner Sewing Experience" />
+    </div>
+    <div class="form-group">
+      <label>Tahap</label>
+      <select id="k-tahap" class="form-control">
+        <option value="Pemula">Pemula</option>
+        <option value="Pertengahan">Pertengahan</option>
+        <option value="Mula Berniaga">Mula Berniaga</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label>Tempoh</label>
+        <input type="text" id="k-tempoh" class="form-control" placeholder="contoh: 1 Hari" />
+      </div>
+      <div class="form-group">
+        <label>Harga</label>
+        <input type="text" id="k-harga" class="form-control" placeholder="contoh: RM 250" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Penerangan Ringkas</label>
+      <textarea id="k-penerangan" class="form-control" placeholder="Tulis penerangan ringkas kelas ini..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Yang Termasuk <small style="color:var(--mid);font-weight:400;">(satu item setiap baris)</small></label>
+      <textarea id="k-termasuk" class="form-control" rows="5" placeholder="Kain (disediakan)&#10;Mesin Jahit (disediakan)&#10;Sijil Penyertaan&#10;Baju Siap (bawa pulang!)"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Apa Yang Dipelajari <small style="color:var(--mid);font-weight:400;">(satu item setiap baris)</small></label>
+      <textarea id="k-dipelajari" class="form-control" rows="4" placeholder="Asas menggunakan mesin jahit&#10;Teknik pemotongan kain&#10;Teknik menjahit asas"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+      <div class="form-group" style="margin:0;">
+        <label>Urutan Paparan</label>
+        <input type="number" id="k-urutan" class="form-control" value="1" min="1" style="margin-top:6px;" />
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Status Paparan</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:14px;">
+          <input type="checkbox" id="k-aktif" checked style="width:18px;height:18px;accent-color:var(--rose);" />
+          <span style="font-size:0.9rem;font-weight:500;">Papar di laman web</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('kelas-modal')">Batal</button>
+      <button class="btn-save" onclick="saveKelas(this)">💾 Simpan</button>
+    </div>
   </div>
 </div>
 
@@ -628,7 +710,7 @@
   function overlayClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
 
   // ── Load all ────────────────────────────────────────────
-  function loadAll() { loadContact(); loadGallery(); loadTestimonials(); loadFaq(); }
+  function loadAll() { loadContact(); loadGallery(); loadTestimonials(); loadFaq(); loadKelas(); }
 
   // ════════════════════════════════════════════════════════
   // CONTACT
@@ -978,6 +1060,121 @@
       await db.collection('faq').doc(id).delete();
       toast('Soalan dipadam.');
       loadFaq();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // KELAS
+  // ════════════════════════════════════════════════════════
+  let kelasCache = [];
+
+  const tahapColors = {
+    'Pemula':        '#4CAF50',
+    'Pertengahan':   '#FF9800',
+    'Mula Berniaga': '#9C27B0'
+  };
+
+  async function loadKelas() {
+    try {
+      const snap = await db.collection('classes').orderBy('urutan', 'asc').get();
+      kelasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderKelasList();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderKelasList() {
+    const el = document.getElementById('kelas-list');
+    if (!kelasCache.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">📚</div><p>Belum ada kelas. Klik "+ Tambah Kelas" untuk mula!</p></div>';
+      return;
+    }
+    el.innerHTML = kelasCache.map(k => `
+      <div class="list-item">
+        <div class="list-item-body">
+          <div class="list-item-title">
+            ${esc(k.nama || '')}
+            <span style="font-size:0.72rem;padding:3px 10px;border-radius:20px;background:${tahapColors[k.tahap]||'#888'};color:#fff;font-weight:600;margin-left:8px;">${esc(k.tahap || '')}</span>
+            ${!k.aktif ? '<span style="font-size:0.72rem;padding:3px 10px;border-radius:20px;background:#ddd;color:#666;margin-left:4px;">Tersembunyi</span>' : ''}
+          </div>
+          <div class="list-item-sub">${k.tempoh ? '⏱ ' + esc(k.tempoh) : ''} ${k.harga ? '· 💰 ' + esc(k.harga) : ''} · Urutan: ${k.urutan || 1}</div>
+          <div class="list-item-sub">${esc((k.penerangan || '').substring(0, 100))}${(k.penerangan || '').length > 100 ? '…' : ''}</div>
+        </div>
+        <div class="list-item-actions">
+          <button class="btn-edit"   onclick="editKelas('${k.id}')">Edit</button>
+          <button class="btn-danger" onclick="deleteKelas('${k.id}')">Padam</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function openKelasModal() {
+    document.getElementById('kelas-modal-title').textContent = 'Tambah Kelas';
+    document.getElementById('kelas-id').value     = '';
+    document.getElementById('k-nama').value       = '';
+    document.getElementById('k-tahap').value      = 'Pemula';
+    document.getElementById('k-tempoh').value     = '';
+    document.getElementById('k-harga').value      = '';
+    document.getElementById('k-penerangan').value = '';
+    document.getElementById('k-termasuk').value   = '';
+    document.getElementById('k-dipelajari').value = '';
+    document.getElementById('k-urutan').value     = kelasCache.length + 1;
+    document.getElementById('k-aktif').checked    = true;
+    openModal('kelas-modal');
+  }
+
+  function editKelas(id) {
+    const k = kelasCache.find(x => x.id === id);
+    if (!k) return;
+    document.getElementById('kelas-modal-title').textContent = 'Edit Kelas';
+    document.getElementById('kelas-id').value     = id;
+    document.getElementById('k-nama').value       = k.nama        || '';
+    document.getElementById('k-tahap').value      = k.tahap       || 'Pemula';
+    document.getElementById('k-tempoh').value     = k.tempoh      || '';
+    document.getElementById('k-harga').value      = k.harga       || '';
+    document.getElementById('k-penerangan').value = k.penerangan  || '';
+    document.getElementById('k-termasuk').value   = (k.termasuk   || []).join('\n');
+    document.getElementById('k-dipelajari').value = (k.dipelajari || []).join('\n');
+    document.getElementById('k-urutan').value     = k.urutan      || 1;
+    document.getElementById('k-aktif').checked    = k.aktif !== false;
+    openModal('kelas-modal');
+  }
+
+  async function saveKelas(btn) {
+    const nama       = document.getElementById('k-nama').value.trim();
+    const tahap      = document.getElementById('k-tahap').value;
+    const tempoh     = document.getElementById('k-tempoh').value.trim();
+    const harga      = document.getElementById('k-harga').value.trim();
+    const penerangan = document.getElementById('k-penerangan').value.trim();
+    const termasuk   = document.getElementById('k-termasuk').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const dipelajari = document.getElementById('k-dipelajari').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const urutan     = parseInt(document.getElementById('k-urutan').value) || 1;
+    const aktif      = document.getElementById('k-aktif').checked;
+    const docId      = document.getElementById('kelas-id').value;
+    if (!nama) { toast('Sila isi nama kelas.', 'err'); return; }
+    btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled  = true;
+    try {
+      const data = { nama, tahap, tempoh, harga, penerangan, termasuk, dipelajari, urutan, aktif,
+                     updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if (docId) {
+        await db.collection('classes').doc(docId).update(data);
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('classes').add(data);
+      }
+      toast('Kelas berjaya disimpan!');
+      closeModal('kelas-modal');
+      loadKelas();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+    btn.innerHTML = '💾 Simpan';
+    btn.disabled  = false;
+  }
+
+  async function deleteKelas(id) {
+    if (!confirm('Padam kelas ini secara kekal?')) return;
+    try {
+      await db.collection('classes').doc(id).delete();
+      toast('Kelas dipadam.');
+      loadKelas();
     } catch(e) { toast('Ralat: ' + e.message, 'err'); }
   }
 

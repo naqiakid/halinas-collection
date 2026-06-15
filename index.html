@@ -416,6 +416,58 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    /* ── Classes Grid ───────────────────────────────────── */
+    #course { padding: 100px 0; background: white; }
+    #course .text-center { text-align: center; margin-bottom: 8px; }
+    .kelas-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin-top: 48px;
+    }
+    .kelas-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      border: 1px solid #f0e8e4;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .kelas-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(184,92,122,0.15); }
+    .kelas-card-top { height: 5px; }
+    .kelas-card-body { padding: 28px; flex: 1; display: flex; flex-direction: column; }
+    .kelas-tahap {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 14px;
+      border-radius: 50px;
+      margin-bottom: 14px;
+      color: white;
+    }
+    .kelas-nama { font-size: 1.2rem; font-weight: 700; color: var(--dark); margin-bottom: 10px; line-height: 1.35; }
+    .kelas-meta { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+    .kelas-meta span { font-size: 0.82rem; color: var(--mid); }
+    .kelas-harga { font-size: 1.3rem; font-weight: 700; color: var(--rose); margin-bottom: 14px; }
+    .kelas-desc { font-size: 0.87rem; color: var(--mid); line-height: 1.65; margin-bottom: 16px; }
+    .kelas-termasuk { list-style: none; margin-bottom: 24px; flex: 1; }
+    .kelas-termasuk li {
+      font-size: 0.85rem;
+      padding: 7px 0;
+      border-bottom: 1px solid #f8f0ec;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--dark);
+    }
+    .kelas-termasuk li::before { content: '✓'; color: var(--rose); font-weight: 700; flex-shrink: 0; }
+    .kelas-card-footer { padding: 0 28px 28px; }
+    .kelas-empty { text-align: center; padding: 60px 20px; color: var(--mid); font-size: 0.95rem; }
+
     /* ── Gallery ────────────────────────────────────────── */
     #gallery {
       padding: 100px 0;
@@ -790,10 +842,11 @@
       .step-item { flex-direction: row; text-align: left; gap: 16px; align-items: flex-start; }
       .step-num { width: 52px; height: 52px; font-size: 1.1rem; margin-bottom: 0; flex-shrink: 0; }
 
-      /* Course */
+      /* Course / Classes */
       .course-inner { grid-template-columns: 1fr; gap: 36px; }
       .course-image { max-height: 300px; object-fit: cover; }
       .course-content .section-title { font-size: 1.6rem; }
+      .kelas-grid { grid-template-columns: 1fr 1fr; }
 
       /* Gallery */
       .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -835,9 +888,10 @@
       .testi-card { min-width: 100%; }
       .testi-quote { font-size: 0.88rem; }
 
-      /* Course */
+      /* Course / Classes */
       .course-meta { grid-template-columns: 1fr 1fr; }
       .tabs { flex-wrap: wrap; }
+      .kelas-grid { grid-template-columns: 1fr; max-width: 400px; margin: 40px auto 0; }
 
       /* About */
       .mv-grid { grid-template-columns: 1fr; }
@@ -1047,63 +1101,33 @@
   </div>
 </section>
 
-<!-- ── SECTION 4: Course Info ─────────────────────────── -->
+<!-- ── SECTION 4: Classes ─────────────────────────────── -->
 <section id="course">
   <div class="container">
-    <div class="course-inner">
-      <img
-        src="https://placehold.co/520x520/F4D6E1/B85C7A?text=Kelas+Menjahit"
-        alt="Kelas Menjahit Halina's Collection"
-        class="course-image"
-      />
-      <div class="course-content">
-        <div class="course-badge">📋 Maklumat Kursus</div>
-        <h2 class="section-title">Beginner Sewing Experience</h2>
-        <p style="color:var(--mid);font-size:0.95rem;margin-bottom:20px;">
-          Kelas menjahit pertama anda yang akan mengubah anda dari seorang yang tidak tahu menjahit kepada penjahit baju sendiri.
-        </p>
-        <div class="course-meta">
-          <div class="meta-item">
-            <div class="label">Tempoh</div>
-            <div class="value">1 Hari</div>
-          </div>
-          <div class="meta-item">
-            <div class="label">Tahap</div>
-            <div class="value">Pemula</div>
-          </div>
-          <div class="meta-item">
-            <div class="label">Lokasi</div>
-            <div class="value">Arked MARA, Kajang</div>
-          </div>
-          <div class="meta-item">
-            <div class="label">Sijil</div>
-            <div class="value">Ya, Disediakan</div>
-          </div>
-        </div>
-        <div class="tabs">
-          <button class="tab-btn active" onclick="switchTab(this,'includes')">Yang Termasuk</button>
-          <button class="tab-btn" onclick="switchTab(this,'outcomes')">Apa Yang Dipelajari</button>
-        </div>
-        <div id="includes" class="tab-content active">
-          <ul class="include-list">
+    <div class="text-center">
+      <p class="section-label">Pakej Kelas</p>
+      <h2 class="section-title">Pilih Kelas Yang Sesuai Untuk Anda</h2>
+      <p class="section-subtitle">Kami tawarkan kelas untuk semua peringkat — dari tiada pengalaman hingga bersedia untuk berniaga.</p>
+    </div>
+    <div class="kelas-grid" id="kelas-grid">
+      <!-- Static fallback — replaced by Firebase if classes exist -->
+      <div class="kelas-card">
+        <div class="kelas-card-top" style="background:#4CAF50;"></div>
+        <div class="kelas-card-body">
+          <span class="kelas-tahap" style="background:#4CAF50;">Pemula</span>
+          <div class="kelas-nama">Beginner Sewing Experience</div>
+          <div class="kelas-meta"><span>⏱ 1 Hari</span></div>
+          <p class="kelas-desc">Kelas menjahit pertama anda. Dari tiada pengalaman hingga baju siap dalam 1 hari.</p>
+          <ul class="kelas-termasuk">
             <li>Kain (disediakan)</li>
             <li>Mesin Jahit (disediakan)</li>
-            <li>Nota &amp; Bahan Pembelajaran</li>
             <li>Bimbingan Jurulatih Sepanjang Kelas</li>
             <li>Sijil Penyertaan</li>
             <li>Baju Siap (bawa pulang!)</li>
           </ul>
         </div>
-        <div id="outcomes" class="tab-content">
-          <ul class="outcome-list">
-            <li>Faham asas cara menggunakan mesin jahit</li>
-            <li>Belajar teknik pemotongan kain dengan betul</li>
-            <li>Kuasai teknik menjahit asas</li>
-            <li>Berjaya menyiapkan satu helai baju sendiri</li>
-          </ul>
-        </div>
-        <div style="margin-top:28px;">
-          <a href="https://wa.me/60XXXXXXXXX" class="wa-link btn btn-wa" style="margin-right:12px;">
+        <div class="kelas-card-footer">
+          <a href="https://wa.me/60XXXXXXXXX" class="wa-link btn btn-wa" style="width:100%;text-align:center;display:block;">
             💬 Daftar Sekarang
           </a>
         </div>
@@ -1504,10 +1528,11 @@
     const db = firebase.firestore();
 
     // Contact info
+    let waNum = '60XXXXXXXXX';
     const contactDoc = await db.collection('settings').doc('contact').get();
     if (contactDoc.exists) {
       const d = contactDoc.data();
-      const waNum = d.whatsapp || '60XXXXXXXXX';
+      waNum = d.whatsapp || '60XXXXXXXXX';
       // Update all WhatsApp links
       document.querySelectorAll('.wa-link').forEach(el => {
         el.href = 'https://wa.me/' + waNum;
@@ -1602,6 +1627,37 @@
           <div class="faq-a">${f.answer || ''}</div>`;
         list.appendChild(div);
       });
+    }
+
+    // Classes
+    const kelasSnap = await db.collection('classes').orderBy('urutan', 'asc').get();
+    if (!kelasSnap.empty) {
+      const activeKelas = kelasSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(k => k.aktif !== false);
+      if (activeKelas.length) {
+        const grid = document.getElementById('kelas-grid');
+        const tahapColors = { 'Pemula': '#4CAF50', 'Pertengahan': '#FF9800', 'Mula Berniaga': '#9C27B0' };
+        grid.innerHTML = '';
+        activeKelas.forEach(k => {
+          const color = tahapColors[k.tahap] || '#B85C7A';
+          const termasukHTML = (k.termasuk || []).slice(0, 5).map(item => `<li>${item}</li>`).join('');
+          const card = document.createElement('div');
+          card.className = 'kelas-card';
+          card.innerHTML = `
+            <div class="kelas-card-top" style="background:${color};"></div>
+            <div class="kelas-card-body">
+              <span class="kelas-tahap" style="background:${color};">${k.tahap || ''}</span>
+              <div class="kelas-nama">${k.nama || ''}</div>
+              <div class="kelas-meta">${k.tempoh ? `<span>⏱ ${k.tempoh}</span>` : ''}</div>
+              ${k.harga ? `<div class="kelas-harga">${k.harga}</div>` : ''}
+              <p class="kelas-desc">${k.penerangan || ''}</p>
+              <ul class="kelas-termasuk">${termasukHTML}</ul>
+            </div>
+            <div class="kelas-card-footer">
+              <a href="https://wa.me/${waNum}" class="wa-link btn btn-wa" style="width:100%;text-align:center;display:block;">💬 Daftar Sekarang</a>
+            </div>`;
+          grid.appendChild(card);
+        });
+      }
     }
 
   } catch(e) {
