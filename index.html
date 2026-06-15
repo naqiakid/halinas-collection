@@ -468,6 +468,64 @@
     .kelas-card-footer { padding: 0 28px 28px; }
     .kelas-empty { text-align: center; padding: 60px 20px; color: var(--mid); font-size: 0.95rem; }
 
+    /* ── Registration Modal ─────────────────────────────── */
+    .reg-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      z-index: 1100; display: flex; align-items: center; justify-content: center;
+      padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .reg-overlay.open { opacity: 1; pointer-events: all; }
+    .reg-modal {
+      background: white; border-radius: 20px; padding: 36px 32px;
+      width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto;
+      position: relative; transform: translateY(24px); transition: transform 0.25s;
+    }
+    .reg-overlay.open .reg-modal { transform: translateY(0); }
+    .reg-close {
+      position: absolute; top: 16px; right: 18px; background: none; border: none;
+      font-size: 1.4rem; cursor: pointer; color: var(--mid); line-height: 1; padding: 4px;
+    }
+    .reg-close:hover { color: var(--dark); }
+    .reg-title { font-size: 1.25rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .reg-class-badge {
+      display: inline-block; font-size: 0.78rem; font-weight: 600;
+      background: var(--rose-lt); color: var(--rose-dk);
+      padding: 4px 14px; border-radius: 50px; margin-bottom: 22px;
+    }
+    .reg-field { margin-bottom: 12px; }
+    .reg-field input {
+      width: 100%; padding: 12px 16px; border: 2px solid #eee; border-radius: 10px;
+      font-family: 'Poppins', sans-serif; font-size: 0.9rem; color: var(--dark);
+      outline: none; transition: border-color 0.2s;
+    }
+    .reg-field input:focus { border-color: var(--rose); }
+    .reg-error { color: #c0392b; font-size: 0.82rem; margin-bottom: 10px; min-height: 18px; }
+    .btn-reg-submit {
+      width: 100%; padding: 14px; background: var(--rose); color: white; border: none;
+      border-radius: 12px; font-family: 'Poppins', sans-serif; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-reg-submit:hover:not(:disabled) { background: var(--rose-dk); }
+    .btn-reg-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .reg-divider {
+      text-align: center; color: var(--mid); font-size: 0.82rem; margin: 14px 0;
+      position: relative;
+    }
+    .reg-divider::before, .reg-divider::after {
+      content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #eee;
+    }
+    .reg-divider::before { left: 0; }
+    .reg-divider::after { right: 0; }
+    .btn-reg-wa {
+      width: 100%; padding: 14px; background: #25D366; color: white; border: none;
+      border-radius: 12px; font-family: 'Poppins', sans-serif; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-reg-wa:hover { background: #1da851; }
+    @media (max-width: 600px) {
+      .reg-modal { padding: 28px 20px; border-radius: 16px; }
+    }
+
     /* ── Gallery ────────────────────────────────────────── */
     #gallery {
       padding: 100px 0;
@@ -1127,9 +1185,10 @@
           </ul>
         </div>
         <div class="kelas-card-footer">
-          <a href="https://wa.me/60XXXXXXXXX" class="wa-link btn btn-wa" style="width:100%;text-align:center;display:block;">
+          <button class="btn btn-wa" style="width:100%;text-align:center;display:block;border:none;cursor:pointer;"
+            onclick="openRegModal('Beginner Sewing Experience','')">
             💬 Daftar Sekarang
-          </a>
+          </button>
         </div>
       </div>
     </div>
@@ -1533,6 +1592,7 @@
     if (contactDoc.exists) {
       const d = contactDoc.data();
       waNum = d.whatsapp || '60XXXXXXXXX';
+      window._waNum = waNum;
       // Update all WhatsApp links
       document.querySelectorAll('.wa-link').forEach(el => {
         el.href = 'https://wa.me/' + waNum;
@@ -1653,7 +1713,9 @@
               <ul class="kelas-termasuk">${termasukHTML}</ul>
             </div>
             <div class="kelas-card-footer">
-              <a href="https://wa.me/${waNum}" class="wa-link btn btn-wa" style="width:100%;text-align:center;display:block;">💬 Daftar Sekarang</a>
+              <button class="btn btn-wa" style="width:100%;text-align:center;display:block;border:none;cursor:pointer;"
+                data-kelas="${k.nama.replace(/"/g,'&quot;')}" data-id="${k.id}"
+                onclick="openRegModal(this.dataset.kelas,this.dataset.id)">💬 Daftar Sekarang</button>
             </div>`;
           grid.appendChild(card);
         });
@@ -1665,6 +1727,135 @@
     console.log('Firebase not configured, showing static content.');
   }
 })();
+</script>
+<!-- ── REGISTRATION MODAL ──────────────────────────────── -->
+<div class="reg-overlay" id="reg-overlay" onclick="regOverlayClose(event)">
+  <div class="reg-modal">
+    <button class="reg-close" onclick="closeRegModal()">✕</button>
+
+    <!-- Form state -->
+    <div id="reg-form-body">
+      <div class="reg-title">Daftar Kelas</div>
+      <span class="reg-class-badge" id="reg-class-name"></span>
+
+      <div class="reg-field">
+        <input type="text" id="reg-nama" placeholder="Nama Penuh *" autocomplete="name" />
+      </div>
+      <div class="reg-field">
+        <input type="tel" id="reg-telefon" placeholder="Nombor Telefon * (contoh: 0123456789)" autocomplete="tel" />
+      </div>
+      <div class="reg-field">
+        <input type="email" id="reg-email" placeholder="E-mel (pilihan)" autocomplete="email" />
+      </div>
+      <div class="reg-field">
+        <input type="text" id="reg-tarikh" placeholder="Tarikh Pilihan (contoh: Sabtu, Julai 2026)" />
+      </div>
+
+      <p class="reg-error" id="reg-error"></p>
+
+      <button class="btn-reg-submit" id="reg-submit-btn" onclick="submitRegistration(this)">
+        💾 Hantar Pendaftaran
+      </button>
+
+      <div class="reg-divider">atau</div>
+
+      <button class="btn-reg-wa" onclick="openRegWhatsApp()">
+        💬 Terus ke WhatsApp
+      </button>
+
+      <p style="text-align:center;font-size:0.78rem;color:var(--mid);margin-top:14px;">
+        Kami akan menghubungi anda dalam masa 24 jam untuk pengesahan.
+      </p>
+    </div>
+
+    <!-- Success state -->
+    <div id="reg-success" style="display:none;text-align:center;padding:16px 0;">
+      <div style="font-size:3.5rem;margin-bottom:16px;">✅</div>
+      <div style="font-size:1.2rem;font-weight:700;color:var(--dark);margin-bottom:10px;">Pendaftaran Berjaya!</div>
+      <p style="color:var(--mid);font-size:0.9rem;margin-bottom:28px;line-height:1.6;">
+        Terima kasih! Kami akan menghubungi anda tidak lama lagi untuk mengesahkan tempat kelas.
+      </p>
+      <button class="btn-reg-submit" onclick="closeRegModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Registration Modal ──────────────────────────────────
+let _regKelas   = '';
+let _regKelasId = '';
+
+function openRegModal(kelasNama, kelasId) {
+  _regKelas   = kelasNama;
+  _regKelasId = kelasId;
+  document.getElementById('reg-class-name').textContent = kelasNama;
+  document.getElementById('reg-nama').value    = '';
+  document.getElementById('reg-telefon').value = '';
+  document.getElementById('reg-email').value   = '';
+  document.getElementById('reg-tarikh').value  = '';
+  document.getElementById('reg-error').textContent = '';
+  document.getElementById('reg-form-body').style.display = '';
+  document.getElementById('reg-success').style.display   = 'none';
+  document.getElementById('reg-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('reg-nama').focus(), 100);
+}
+
+function closeRegModal() {
+  document.getElementById('reg-overlay').classList.remove('open');
+}
+
+function regOverlayClose(e) {
+  if (e.target === e.currentTarget) closeRegModal();
+}
+
+async function submitRegistration(btn) {
+  const nama    = document.getElementById('reg-nama').value.trim();
+  const telefon = document.getElementById('reg-telefon').value.trim();
+  const email   = document.getElementById('reg-email').value.trim();
+  const tarikh  = document.getElementById('reg-tarikh').value.trim();
+  const errEl   = document.getElementById('reg-error');
+
+  if (!nama)    { errEl.textContent = 'Sila isi nama penuh.';       return; }
+  if (!telefon) { errEl.textContent = 'Sila isi nombor telefon.';   return; }
+  errEl.textContent = '';
+
+  btn.disabled    = true;
+  btn.textContent = 'Menghantar...';
+
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    await db.collection('registrations').add({
+      nama, telefon, email, tarikh,
+      kelas:   _regKelas,
+      kelasId: _regKelasId,
+      status:  'baru',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('reg-form-body').style.display = 'none';
+    document.getElementById('reg-success').style.display   = '';
+  } catch(e) {
+    errEl.textContent = 'Ralat: ' + e.message;
+  }
+
+  btn.disabled    = false;
+  btn.textContent = '💾 Hantar Pendaftaran';
+}
+
+function openRegWhatsApp() {
+  const nama    = document.getElementById('reg-nama').value.trim();
+  const telefon = document.getElementById('reg-telefon').value.trim();
+  const tarikh  = document.getElementById('reg-tarikh').value.trim();
+  const waNum   = window._waNum || '60XXXXXXXXX';
+
+  let msg = `Assalamualaikum Halina's Collection! 😊\n\nSaya ingin mendaftar untuk kelas berikut:\n\n📚 *Kelas:* ${_regKelas}`;
+  if (nama)    msg += `\n👤 *Nama:* ${nama}`;
+  if (telefon) msg += `\n📱 *Telefon:* ${telefon}`;
+  if (tarikh)  msg += `\n📅 *Tarikh Pilihan:* ${tarikh}`;
+  msg += '\n\nSila hubungi saya untuk pengesahan. Terima kasih! 🙏';
+
+  window.open('https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg), '_blank');
+}
 </script>
 </body>
 </html>

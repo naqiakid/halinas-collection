@@ -98,6 +98,11 @@
     .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
     .nav-item.active { color: white; background: rgba(184,92,122,0.15); border-left-color: var(--rose); }
     .nav-icon { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: #e53e3e; color: white;
+      font-size: 0.65rem; font-weight: 700; border-radius: 50px;
+      padding: 1px 7px; min-width: 18px; text-align: center;
+    }
     .sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.07); }
     .btn-logout {
       width: 100%; padding: 9px; background: transparent;
@@ -198,7 +203,33 @@
     .list-item-body { flex: 1; min-width: 0; }
     .list-item-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 3px; }
     .list-item-sub { font-size: 0.8rem; color: var(--mid); line-height: 1.5; white-space: pre-wrap; }
-    .list-item-actions { display: flex; gap: 6px; flex-shrink: 0; padding-top: 2px; }
+    .list-item-actions { display: flex; gap: 6px; flex-shrink: 0; padding-top: 2px; flex-wrap: wrap; }
+
+    /* ── REGISTRATION STATUS BADGES ──────────────────── */
+    .reg-status {
+      display: inline-block; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      padding: 2px 9px; border-radius: 50px; margin-left: 8px;
+    }
+    .reg-status.baru      { background: #FEF3C7; color: #B45309; }
+    .reg-status.disahkan  { background: #D1FAE5; color: #065F46; }
+    .reg-status.dibatalkan{ background: #FEE2E2; color: #991B1B; }
+    .reg-stats {
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .reg-stat {
+      flex: 1; min-width: 100px; background: var(--cream); border-radius: 10px;
+      padding: 14px 16px; text-align: center;
+    }
+    .reg-stat-num { font-size: 1.6rem; font-weight: 700; color: var(--dark); line-height: 1; }
+    .reg-stat-lbl { font-size: 0.72rem; color: var(--mid); margin-top: 4px; }
+    .reg-filter { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .reg-filter-btn {
+      padding: 6px 14px; border-radius: 50px; border: 2px solid #eee;
+      background: white; font-family: 'Poppins', sans-serif; font-size: 0.8rem;
+      font-weight: 600; cursor: pointer; color: var(--mid); transition: all 0.15s;
+    }
+    .reg-filter-btn.active { background: var(--rose); color: white; border-color: var(--rose); }
 
     /* ── MODAL ────────────────────────────────────────── */
     .modal-overlay {
@@ -329,8 +360,12 @@
       <span class="sidebar-badge">Admin Portal</span>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-item active" data-panel="contact" onclick="showPanel('contact', this)">
-        <span class="nav-icon">📞</span><span>Hubungi</span>
+      <div class="nav-item active" data-panel="pendaftaran" onclick="showPanel('pendaftaran', this)">
+        <span class="nav-icon">📋</span><span>Pendaftaran</span>
+        <span class="nav-badge" id="pending-badge" style="display:none;">0</span>
+      </div>
+      <div class="nav-item" data-panel="kelas" onclick="showPanel('kelas', this)">
+        <span class="nav-icon">📚</span><span>Kelas</span>
       </div>
       <div class="nav-item" data-panel="gallery" onclick="showPanel('gallery', this)">
         <span class="nav-icon">🖼️</span><span>Galeri</span>
@@ -341,8 +376,8 @@
       <div class="nav-item" data-panel="faq" onclick="showPanel('faq', this)">
         <span class="nav-icon">❓</span><span>FAQ</span>
       </div>
-      <div class="nav-item" data-panel="kelas" onclick="showPanel('kelas', this)">
-        <span class="nav-icon">📚</span><span>Kelas</span>
+      <div class="nav-item" data-panel="contact" onclick="showPanel('contact', this)">
+        <span class="nav-icon">📞</span><span>Hubungi</span>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -353,8 +388,45 @@
   <!-- Main -->
   <main class="main-content">
 
+    <!-- PENDAFTARAN PANEL -->
+    <div class="panel active" id="panel-pendaftaran">
+      <div class="page-header">
+        <h1 class="page-title">Pendaftaran Pelajar</h1>
+        <p class="page-subtitle">Semak dan urus pendaftaran yang diterima dari laman web</p>
+      </div>
+      <div class="reg-stats">
+        <div class="reg-stat">
+          <div class="reg-stat-num" id="stat-total">0</div>
+          <div class="reg-stat-lbl">Jumlah</div>
+        </div>
+        <div class="reg-stat" style="background:#FEF3C7;">
+          <div class="reg-stat-num" id="stat-baru" style="color:#B45309;">0</div>
+          <div class="reg-stat-lbl">Baru</div>
+        </div>
+        <div class="reg-stat" style="background:#D1FAE5;">
+          <div class="reg-stat-num" id="stat-disahkan" style="color:#065F46;">0</div>
+          <div class="reg-stat-lbl">Disahkan</div>
+        </div>
+        <div class="reg-stat" style="background:#FEE2E2;">
+          <div class="reg-stat-num" id="stat-batal" style="color:#991B1B;">0</div>
+          <div class="reg-stat-lbl">Dibatalkan</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="reg-filter">
+          <button class="reg-filter-btn active" onclick="filterReg('semua',this)">Semua</button>
+          <button class="reg-filter-btn" onclick="filterReg('baru',this)">🟡 Baru</button>
+          <button class="reg-filter-btn" onclick="filterReg('disahkan',this)">🟢 Disahkan</button>
+          <button class="reg-filter-btn" onclick="filterReg('dibatalkan',this)">🔴 Dibatalkan</button>
+        </div>
+        <div id="reg-list">
+          <div class="empty"><div class="empty-icon">📋</div><p>Belum ada pendaftaran.</p></div>
+        </div>
+      </div>
+    </div>
+
     <!-- CONTACT PANEL -->
-    <div class="panel active" id="panel-contact">
+    <div class="panel" id="panel-contact">
       <div class="page-header">
         <h1 class="page-title">Maklumat Hubungi</h1>
         <p class="page-subtitle">Kemas kini nombor telefon, alamat dan waktu operasi</p>
@@ -710,7 +782,7 @@
   function overlayClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
 
   // ── Load all ────────────────────────────────────────────
-  function loadAll() { loadContact(); loadGallery(); loadTestimonials(); loadFaq(); loadKelas(); }
+  function loadAll() { loadPendaftaran(); loadContact(); loadGallery(); loadTestimonials(); loadFaq(); loadKelas(); }
 
   // ════════════════════════════════════════════════════════
   // CONTACT
@@ -1060,6 +1132,95 @@
       await db.collection('faq').doc(id).delete();
       toast('Soalan dipadam.');
       loadFaq();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // PENDAFTARAN
+  // ════════════════════════════════════════════════════════
+  let regCache      = [];
+  let regFilter     = 'semua';
+
+  async function loadPendaftaran() {
+    try {
+      const snap = await db.collection('registrations').orderBy('createdAt','desc').get();
+      regCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderRegStats();
+      renderRegList();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderRegStats() {
+    const total    = regCache.length;
+    const baru     = regCache.filter(r => r.status === 'baru').length;
+    const disahkan = regCache.filter(r => r.status === 'disahkan').length;
+    const batal    = regCache.filter(r => r.status === 'dibatalkan').length;
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-baru').textContent     = baru;
+    document.getElementById('stat-disahkan').textContent = disahkan;
+    document.getElementById('stat-batal').textContent    = batal;
+    const badge = document.getElementById('pending-badge');
+    if (baru > 0) { badge.textContent = baru; badge.style.display = ''; }
+    else            { badge.style.display = 'none'; }
+  }
+
+  function filterReg(f, btn) {
+    regFilter = f;
+    document.querySelectorAll('.reg-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRegList();
+  }
+
+  function renderRegList() {
+    const el   = document.getElementById('reg-list');
+    const list = regFilter === 'semua' ? regCache : regCache.filter(r => r.status === regFilter);
+    if (!list.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Tiada rekod untuk kategori ini.</p></div>';
+      return;
+    }
+    el.innerHTML = list.map(r => {
+      const ts = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ms-MY', { dateStyle:'medium', timeStyle:'short' }) : '—';
+      const statusClass = r.status === 'baru' ? 'baru' : r.status === 'disahkan' ? 'disahkan' : 'dibatalkan';
+      const statusLabel = r.status === 'baru' ? 'Baru' : r.status === 'disahkan' ? 'Disahkan' : 'Dibatalkan';
+      const waBtn = r.telefon ? `<button class="btn-edit" title="WhatsApp pelajar" onclick="window.open('https://wa.me/6${r.telefon.replace(/^0/,'')}','_blank')">💬</button>` : '';
+      const sahBtn = r.status !== 'disahkan'  ? `<button class="btn-edit" onclick="updateRegStatus('${r.id}','disahkan')">✓ Sahkan</button>` : '';
+      const batalBtn = r.status !== 'dibatalkan' ? `<button class="btn-danger" onclick="updateRegStatus('${r.id}','dibatalkan')">✗ Batalkan</button>` : '';
+      return `
+        <div class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">
+              ${esc(r.nama || '—')}
+              <span class="reg-status ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="list-item-sub" style="font-weight:600;color:var(--rose);">📚 ${esc(r.kelas || '—')}</div>
+            <div class="list-item-sub">📱 ${esc(r.telefon || '—')}${r.email ? ' · ✉️ ' + esc(r.email) : ''}</div>
+            ${r.tarikh ? `<div class="list-item-sub">📅 Tarikh Pilihan: ${esc(r.tarikh)}</div>` : ''}
+            <div class="list-item-sub" style="font-size:0.73rem;color:#bbb;">Daftar: ${ts}</div>
+          </div>
+          <div class="list-item-actions" style="flex-direction:column;align-items:flex-end;">
+            ${waBtn}${sahBtn}${batalBtn}
+            <button class="btn-danger" onclick="deleteReg('${r.id}')">🗑 Padam</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function updateRegStatus(id, newStatus) {
+    try {
+      await db.collection('registrations').doc(id).update({
+        status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast(newStatus === 'disahkan' ? 'Pendaftaran disahkan!' : 'Pendaftaran dibatalkan.');
+      loadPendaftaran();
+    } catch(e) { toast('Ralat: ' + e.message, 'err'); }
+  }
+
+  async function deleteReg(id) {
+    if (!confirm('Padam rekod pendaftaran ini?')) return;
+    try {
+      await db.collection('registrations').doc(id).delete();
+      toast('Rekod dipadam.');
+      loadPendaftaran();
     } catch(e) { toast('Ralat: ' + e.message, 'err'); }
   }
 
