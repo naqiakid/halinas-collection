@@ -1,18 +1,8 @@
-// ─────────────────────────────────────────────────────────
-// FIREBASE CONFIGURATION — Halina's Collection
-// ─────────────────────────────────────────────────────────
-// HOW TO GET THESE VALUES:
-// 1. Go to https://console.firebase.google.com
-// 2. Create a project (e.g. "halinas-collection")
-// 3. Go to Project Settings → Your Apps → Add Web App
-// 4. Copy the config object values below
-// ─────────────────────────────────────────────────────────
-
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyC6vt18V21qWP0YytDAIRb1x888G6Rj3n4",
+  authDomain:        "halinas-collection-hc.firebaseapp.com",
+  projectId:         "halinas-collection-hc",
+  storageBucket:     "halinas-collection-hc.firebasestorage.app",
+  messagingSenderId: "936995003014",
+  appId:             "1:936995003014:web:f3721c5ba960f755f68f07"
 };
